@@ -200,7 +200,7 @@ class Timeline extends Component {
   handleEvents() {
     const eventsData = schedule.events;
 
-    const events = this.g.selectAll('rect.event').data([1], d => d);
+    const events = this.g.selectAll('rect.event').data(eventsData, d => d);
 
     events.exit().remove();
 
@@ -208,13 +208,48 @@ class Timeline extends Component {
       .enter()
       .append('rect')
       .attr('class', 'event')
-      .style('fill', '#000000')
-      .style('opacity', '0.9')
+      .style('fill', '#151515')
+      .attr('rx', 6)
+      .attr('ry', 6)
+      .style('stroke-width', 1)
+      .style('stroke', '#505050')
       .merge(events)
-      .attr('x', -this.margin.left)
-      .attr('y', 0)
-      .attr('width', this.margin.left)
-      .attr('height', this.height);
+      .attr('x', d => this.x(d.startTime))
+      .attr('y', this.yEvent(0))
+      .attr('width', d => this.x(d.endTime) - this.x(d.startTime))
+      .attr('height', 30);
+
+    const eventsLabelsLeft = this.g.selectAll('text.event-left').data(eventsData, d => d);
+
+    eventsLabelsLeft.exit().remove();
+
+    eventsLabelsLeft
+      .enter()
+      .append('text')
+      .attr('class', 'event-left')
+      .style('fill', '#ffffff')
+      .style('font-size', '11px')
+      .merge(eventsLabelsLeft)
+      .attr('text-anchor', 'start')
+      .text(d => d.label)
+      .attr('x', d => this.x(d.startTime) + 8)
+      .attr('y', this.yEvent(1.25));
+
+    const eventsLabelsRight = this.g.selectAll('text.event-right').data(eventsData, d => d);
+
+    eventsLabelsRight.exit().remove();
+
+    eventsLabelsRight
+      .enter()
+      .append('text')
+      .attr('class', 'event-right')
+      .style('fill', '#ffffff')
+      .style('font-size', '11px')
+      .merge(eventsLabelsRight)
+      .attr('text-anchor', 'end')
+      .text(d => d.label)
+      .attr('x', d => this.x(d.endTime) - 8)
+      .attr('y', this.yEvent(1.25));
   }
 
   handleLabelBlock() {
@@ -250,7 +285,7 @@ class Timeline extends Component {
       .domain([0, 2]);
     this.yEvent = scaleLinear()
       .range([24, 54])
-      .domain([0, 1]);
+      .domain([0, 2]);
   }
 
   update() {
