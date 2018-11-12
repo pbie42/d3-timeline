@@ -1,5 +1,6 @@
 .App {
   text-align: center;
+  overflow: hidden;
 }
 
 .App-logo {
@@ -20,6 +21,10 @@
 
 .App-link {
   color: #61dafb;
+}
+
+text.time {
+  color: #ffffff;
 }
 
 @keyframes App-logo-spin {
