@@ -122,8 +122,30 @@ class Timeline extends Component {
       .attr('y2', this.yTime(2));
   }
 
+  labelTextPosition(item) {
+    switch (item) {
+      case 'TIME':
+        return this.yTime(1.5);
+      case 'EVENTS':
+        return this.yEvent(1.25);
+      default:
+        break;
+    }
+  }
+
+  labelBorderPosition(item) {
+    switch (item) {
+      case 'TIME':
+        return this.yTime(2);
+      case 'EVENTS':
+        return this.yEvent(2);
+      default:
+        break;
+    }
+  }
+
   handleLabels() {
-    const labelData = ['TIME'];
+    const labelData = ['TIME', 'EVENTS'];
     const labels = this.g.selectAll('text.label').data(labelData, d => d);
 
     labels.exit().remove();
@@ -134,7 +156,7 @@ class Timeline extends Component {
       .attr('class', 'label')
       .merge(labels)
       .attr('x', this.xLabel(0.25))
-      .attr('y', this.yTime(1.5))
+      .attr('y', d => this.labelTextPosition(d))
       .text(d => d)
       .style('font-size', '13px')
       .style('fill', '#ffffff');
@@ -151,9 +173,9 @@ class Timeline extends Component {
       .style('stroke', '#393939')
       .merge(timeBorder)
       .attr('x1', -this.margin.left)
-      .attr('y1', this.yTime(2))
+      .attr('y1', d => this.labelBorderPosition(d))
       .attr('x2', 0)
-      .attr('y2', this.yTime(2));
+      .attr('y2', d => this.labelBorderPosition(d));
   }
 
   handleTimeStamps() {
