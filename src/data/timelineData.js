@@ -50,22 +50,38 @@ export default {
         {
           title: 'Cook',
           startTime: 1541664900000, // 8:15
-          endTime: 1541665800000 // 8:30
+          endTime: 1541665800000, // 8:30
+          severity: 'SEVERE'
+        },
+        {
+          title: 'Read Paper',
+          startTime: 1541665200000, // 8:20
+          endTime: 1541666400000, // 8:40
+          severity: 'MODERATE'
         },
         {
           title: 'Brush Teeth',
           startTime: 1541666100000, // 8:35
-          endTime: 1541666400000 // 8:40
+          endTime: 1541666400000, // 8:40
+          severity: 'Severe'
         },
         {
           title: 'Hydrate',
           startTime: 1541673900000, // 10:45
-          endTime: 1541674200000 // 10:50
+          endTime: 1541674200000, // 10:50
+          severity: 'SEVERE'
+        },
+        {
+          title: 'Pump Iron',
+          startTime: 1541670300000, // 9:45
+          endTime: 1541675700000, // 11:15
+          severity: 'SEVERE'
         },
         {
           title: 'Hydrate',
           startTime: 1541676600000, // 11:30
-          endTime: 1541676900000 // 11:35
+          endTime: 1541676900000, // 11:35
+          severity: 'SEVERE'
         }
       ]
     },

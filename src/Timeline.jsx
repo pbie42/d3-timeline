@@ -85,7 +85,18 @@ class Timeline extends Component {
       time.add(30, 'm');
     }
     this.timeStamps = timeStamps;
-    console.log(`this.timeStamps`, this.timeStamps);
+  }
+
+  sortTasks(taskGroupName) {
+    const taskGroup = schedule.taskGroups.find(t => t.name === taskGroupName);
+    const rows = [];
+    taskGroup.tasks.forEach(t => {
+      if (rows.length === 0) {
+        rows.push([t]);
+        return;
+      }
+      rows.forEach((r, i) => {});
+    });
   }
 
   handleBorders() {
