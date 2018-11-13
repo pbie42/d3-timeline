@@ -41,8 +41,6 @@ class Timeline extends Component {
     this.update();
   }
 
-  findEndtime() {}
-
   setupTimeline() {
     this.margin = {
       left: 72,
@@ -69,6 +67,40 @@ class Timeline extends Component {
     console.log(`this.endTime`, this.endTime);
   }
 
+  sortTasks(taskGroupName) {
+    const taskGroup = schedule.taskGroups.find(t => t.name === taskGroupName);
+    const rows = [];
+    let placed = false;
+    taskGroup.tasks.forEach(t => {
+      if (rows.length === 0) {
+        rows.push([t]);
+        return;
+      }
+      rows.forEach((r, i) => {
+        const found = r.every(item => t.endTime <= item.startTime || t.startTime >= item.endTime);
+        if (!found && !placed) {
+          r.push(t);
+          placed = true;
+        }
+      });
+      if (!placed) {
+        rows.push([t]);
+      } else placed = false;
+    });
+    return rows;
+  }
+
+  findSectionsAndRows() {
+    const taskGroups = schedule.taskGroups;
+    const sortedTGs = [];
+
+    taskGroups.forEach(tg => {
+      sortedTGs.push(this.sortTasks(tg.name));
+    });
+    console.log(`sortedTGs`, sortedTGs);
+    this.taskGroups = sortedTGs;
+  }
+
   createTimeStamps() {
     let time = moment(this.startTime);
     const minutes = time.minutes();
@@ -85,108 +117,6 @@ class Timeline extends Component {
       time.add(30, 'm');
     }
     this.timeStamps = timeStamps;
-  }
-
-  sortTasks(taskGroupName) {
-    const taskGroup = schedule.taskGroups.find(t => t.name === taskGroupName);
-    const rows = [];
-    taskGroup.tasks.forEach(t => {
-      if (rows.length === 0) {
-        rows.push([t]);
-        return;
-      }
-      rows.forEach((r, i) => {});
-    });
-  }
-
-  handleBorders() {
-    const leftBorder = this.g.selectAll('line.left').data([1]);
-    leftBorder.exit().remove();
-
-    leftBorder
-      .enter()
-      .append('line')
-      .attr('class', 'left')
-      .style('stroke-width', 1)
-      .style('stroke', '#ffffff')
-      .style('opacity', '0.2')
-      .merge(leftBorder)
-      .attr('x1', 0)
-      .attr('y1', 0)
-      .attr('x2', 0)
-      .attr('y2', this.height);
-
-    const timeBorder = this.g.selectAll('line.time-border').data([1]);
-    timeBorder.exit().remove();
-
-    timeBorder
-      .enter()
-      .append('line')
-      .attr('class', 'time-border')
-      .style('stroke-width', 1)
-      .style('stroke', '#ffffff')
-      .style('opacity', '0.2')
-      .merge(timeBorder)
-      .attr('x1', 0)
-      .attr('y1', this.yTime(2))
-      .attr('x2', this.width)
-      .attr('y2', this.yTime(2));
-  }
-
-  labelTextPosition(item) {
-    switch (item) {
-      case 'TIME':
-        return this.yTime(1.5);
-      case 'EVENTS':
-        return this.yEvent(1.25);
-      default:
-        break;
-    }
-  }
-
-  labelBorderPosition(item) {
-    switch (item) {
-      case 'TIME':
-        return this.yTime(2);
-      case 'EVENTS':
-        return this.yEvent(2);
-      default:
-        break;
-    }
-  }
-
-  handleLabels() {
-    const labelData = ['TIME', 'EVENTS'];
-    const labels = this.g.selectAll('text.label').data(labelData, d => d);
-
-    labels.exit().remove();
-
-    labels
-      .enter()
-      .append('text')
-      .attr('class', 'label')
-      .merge(labels)
-      .attr('x', this.xLabel(0.25))
-      .attr('y', d => this.labelTextPosition(d))
-      .text(d => d)
-      .style('font-size', '13px')
-      .style('fill', '#ffffff');
-
-    const timeBorder = this.g.selectAll('line.time-label-line').data(labelData, d => d);
-
-    timeBorder.exit().remove();
-
-    timeBorder
-      .enter()
-      .append('line')
-      .attr('class', 'time-label-line')
-      .style('stroke-width', 1)
-      .style('stroke', '#393939')
-      .merge(timeBorder)
-      .attr('x1', -this.margin.left)
-      .attr('y1', d => this.labelBorderPosition(d))
-      .attr('x2', 0)
-      .attr('y2', d => this.labelBorderPosition(d));
   }
 
   handleTimeStamps() {
@@ -248,9 +178,9 @@ class Timeline extends Component {
       .style('stroke', '#505050')
       .merge(events)
       .attr('x', d => this.x(d.startTime))
-      .attr('y', this.yEvent(0))
+      .attr('y', this.yEvent(0) + 3)
       .attr('width', d => this.x(d.endTime) - this.x(d.startTime))
-      .attr('height', 30);
+      .attr('height', 26);
 
     const eventsLabelsLeft = this.g.selectAll('text.event-left').data(eventsData, d => d);
 
@@ -303,6 +233,97 @@ class Timeline extends Component {
       .attr('height', this.height);
   }
 
+  labelTextPosition(item) {
+    switch (item) {
+      case 'TIME':
+        return this.yTime(1.5);
+      case 'EVENTS':
+        return this.yEvent(1.25);
+      default:
+        break;
+    }
+  }
+
+  borderPosition(item) {
+    switch (item) {
+      case 'TIME':
+        return this.yTime(2);
+      case 'EVENTS':
+        return this.yEvent(2);
+      default:
+        break;
+    }
+  }
+
+  handleLabels() {
+    const labelData = ['TIME', 'EVENTS'];
+    const labels = this.g.selectAll('text.label').data(labelData, d => d);
+
+    labels.exit().remove();
+
+    labels
+      .enter()
+      .append('text')
+      .attr('class', 'label')
+      .merge(labels)
+      .attr('x', this.xLabel(0.25))
+      .attr('y', d => this.labelTextPosition(d))
+      .text(d => d)
+      .style('font-size', '13px')
+      .style('fill', '#ffffff');
+
+    const timeBorder = this.g.selectAll('line.time-label-line').data(labelData, d => d);
+
+    timeBorder.exit().remove();
+
+    timeBorder
+      .enter()
+      .append('line')
+      .attr('class', 'time-label-line')
+      .style('stroke-width', 1)
+      .style('stroke', '#393939')
+      .merge(timeBorder)
+      .attr('x1', -this.margin.left)
+      .attr('y1', d => this.borderPosition(d))
+      .attr('x2', 0)
+      .attr('y2', d => this.borderPosition(d));
+  }
+
+  handleBorders() {
+    const leftBorder = this.g.selectAll('line.left').data([1]);
+    leftBorder.exit().remove();
+
+    leftBorder
+      .enter()
+      .append('line')
+      .attr('class', 'left')
+      .style('stroke-width', 1)
+      .style('stroke', '#ffffff')
+      .style('opacity', '0.2')
+      .merge(leftBorder)
+      .attr('x1', 0)
+      .attr('y1', 0)
+      .attr('x2', 0)
+      .attr('y2', this.height);
+
+    const labelData = ['TIME', 'EVENTS'];
+    const sectionBorders = this.g.selectAll('line.section-border').data(labelData, d => d);
+    sectionBorders.exit().remove();
+
+    sectionBorders
+      .enter()
+      .append('line')
+      .attr('class', 'section-border')
+      .style('stroke-width', 1)
+      .style('stroke', '#ffffff')
+      .style('opacity', '0.2')
+      .merge(sectionBorders)
+      .attr('x1', 0)
+      .attr('y1', d => this.borderPosition(d))
+      .attr('x2', this.width)
+      .attr('y2', d => this.borderPosition(d));
+  }
+
   reScale() {
     // X Scales
     this.x = scaleTime()
@@ -317,7 +338,7 @@ class Timeline extends Component {
       .range([0, 24])
       .domain([0, 2]);
     this.yEvent = scaleLinear()
-      .range([24, 54])
+      .range([24, 56])
       .domain([0, 2]);
   }
 
@@ -338,6 +359,8 @@ class Timeline extends Component {
     this.handleLabelBlock();
     this.handleLabels();
     this.handleBorders();
+
+    this.findSectionsAndRows();
   }
 
   render() {
