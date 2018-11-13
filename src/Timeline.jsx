@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { scaleLinear, scaleTime } from 'd3-scale';
+import tip from 'd3-tip';
 import { select } from 'd3-selection';
 
 import schedule from './data/timelineData';
@@ -279,7 +280,13 @@ class Timeline extends Component {
       .split(' ')
       .join('-');
     const groupName = taskGroupName.toLowerCase().split(' ')[0];
+
+    const toolTip = tip()
+      .attr('class', 'd3-tip s')
+      .html(d => d);
     const taskRects = this.g.selectAll(`rect.${className}${row}`).data(tasks, d => d);
+
+    this.g.call(toolTip);
 
     taskRects.exit().remove();
 
@@ -291,6 +298,8 @@ class Timeline extends Component {
       .attr('rx', 3)
       .attr('ry', 3)
       .attr('name', d => d.title)
+      .on('mouseover', toolTip.show)
+      .on('mouseout', toolTip.hide)
       .merge(taskRects)
       .attr('x', d => this.x(d.startTime))
       .attr('y', this[`y${groupName}`](row) + 1)
