@@ -82,11 +82,6 @@ export default {
           startTime: 1541676600000, // 11:30
           endTime: 1541676900000, // 11:35
           severity: 'SEVERE'
-        },
-        {
-          title: 'Rinse Bottle',
-          startTime: 1541666700000, // 8:45
-          endTime: 1541667600000 // 9:00
         }
       ]
     },
@@ -95,6 +90,11 @@ export default {
       tasks: [
         {
           title: 'Clean Dishes',
+          startTime: 1541666700000, // 8:45
+          endTime: 1541667600000 // 9:00
+        },
+        {
+          title: 'Rinse Bottle',
           startTime: 1541666700000, // 8:45
           endTime: 1541667600000 // 9:00
         }

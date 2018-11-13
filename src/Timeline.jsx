@@ -16,17 +16,18 @@ class Timeline extends Component {
   componentDidMount() {
     this.windowHeight = window.innerHeight;
     this.windowWidth = window.innerWidth;
+
     this.setupTimeline();
     this.updateWindowDimensions();
-    console.log(`this.state`, this.state);
+
+    // Listen for window resize
     window.addEventListener('resize', this.updateWindowDimensions);
   }
 
   componentWillUnmount() {
+    // Remove window resize listener
     window.removeEventListener('resize', this.updateWindowDimensions);
   }
-
-  componentDidUpdate(prevProps, prevState) {}
 
   updateWindowDimensions() {
     this.windowWidth = window.innerWidth;
@@ -38,14 +39,14 @@ class Timeline extends Component {
     this.timeRowHeight = 24;
     this.eventsRowHeight = 32;
 
-    this.findSectionsAndRows();
+    this.sortTaskGroups();
 
     let tasksRowsCombinedHeight = 0;
     this.taskGroups.forEach(tg => {
       tasksRowsCombinedHeight += tg.tasks.length * 14 + tg.tasks.length + 1;
     });
 
-    const timelineHeight = tasksRowsCombinedHeight + this.timeRowHeight + this.eventsRowHeight;
+    this.timelineHeight = tasksRowsCombinedHeight + this.timeRowHeight + this.eventsRowHeight;
 
     this.margin = {
       left: 72,
@@ -53,27 +54,28 @@ class Timeline extends Component {
       top: 0,
       bottom: 0
     };
-    const totalHeight = timelineHeight + this.margin.top + this.margin.bottom;
+    this.totalHeight = this.timelineHeight + this.margin.top + this.margin.bottom;
     this.width = this.windowWidth - this.margin.left - this.margin.right;
-    this.height = totalHeight - this.margin.top - this.margin.bottom;
 
+    // Create the SVG where everything will be placed inside
     this.g = select('#timeline')
       .append('svg')
       .style('width', this.width + this.margin.left + this.margin.right)
-      .attr('height', this.height + this.margin.top + this.margin.bottom)
+      .attr('height', this.totalHeight)
       .style('background-color', '#212121')
       .append('g')
       .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
 
-    this.yAxisGroup = this.g.append('g').attr('class', 'y axis');
     this.startTime = schedule.startTime;
     this.endTime = +moment(schedule.startTime)
       .add(6, 'h')
       .format('x');
   }
 
-  sortTasks(taskGroupName) {
-    const taskGroup = schedule.taskGroups.find(t => t.name === taskGroupName);
+  // Easy algorithm for sorting tasks whose times overlap into different "rows"
+  // that will be displayed on the graph.
+  sortTasks(taskGroups, taskGroupName) {
+    const taskGroup = taskGroups.find(t => t.name === taskGroupName);
     const rows = [];
     let placed = false;
     taskGroup.tasks.forEach((t, index) => {
@@ -95,18 +97,12 @@ class Timeline extends Component {
     return rows;
   }
 
-  findSectionsAndRows() {
+  sortTaskGroups() {
     const taskGroups = schedule.taskGroups;
-    const sortedTGs = [];
-
-    taskGroups.forEach(tg => {
-      sortedTGs.push({
-        name: tg.name,
-        tasks: this.sortTasks(tg.name)
-      });
-    });
-    console.log(`sortedTGs`, sortedTGs);
-    this.taskGroups = sortedTGs;
+    this.taskGroups = taskGroups.map(tg => ({
+      name: tg.name,
+      tasks: this.sortTasks(taskGroups, tg.name)
+    }));
   }
 
   createTimeStamps() {
@@ -165,13 +161,11 @@ class Timeline extends Component {
       .attr('x1', d => this.x(new Date(d)))
       .attr('y1', this.yTime(2))
       .attr('x2', d => this.x(new Date(d)))
-      .attr('y2', this.height);
+      .attr('y2', this.timelineHeight);
   }
 
   handleEvents() {
     const eventsData = schedule.events;
-    console.log(`eventsData`, eventsData);
-
     const events = this.g.selectAll('rect.event').data(eventsData, d => d);
 
     events.exit().remove();
@@ -306,7 +300,6 @@ class Timeline extends Component {
 
   handleTaskGroup(taskGroup, row) {
     this.handleTaskGroupLabel(taskGroup);
-    // this.handleTaskGroupBorder(taskGroup);
     taskGroup.tasks.forEach((tasks, i) => this.handleTasks(tasks, taskGroup.name, i));
   }
 
@@ -325,7 +318,7 @@ class Timeline extends Component {
       .attr('x', -this.margin.left)
       .attr('y', 0)
       .attr('width', this.margin.left)
-      .attr('height', this.height);
+      .attr('height', this.timelineHeight);
   }
 
   labelTextPosition(item) {
@@ -399,7 +392,7 @@ class Timeline extends Component {
       .attr('x1', 0)
       .attr('y1', 0)
       .attr('x2', 0)
-      .attr('y2', this.height);
+      .attr('y2', this.timelineHeight);
 
     const labelData = ['TIME', 'EVENTS'];
     const sectionBorders = this.g.selectAll('line.section-border').data(labelData, d => d);
@@ -451,11 +444,12 @@ class Timeline extends Component {
   }
 
   update() {
+    this.totalHeight = this.timelineHeight + this.margin.top + this.margin.bottom;
     this.width = this.windowWidth - this.margin.left - this.margin.right;
-    this.height = this.windowHeight - this.margin.top - this.margin.bottom;
     select('#timeline')
       .style('width', this.width + this.margin.left + this.margin.right)
-      .attr('height', this.height + this.margin.top + this.margin.bottom);
+      .attr('height', this.totalHeight);
+
     this.reScale();
 
     this.createTimeStamps();
