@@ -1,10 +1,8 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { scaleLinear, scaleBand, scaleTime } from 'd3-scale';
-import { max, extent } from 'd3-array';
+import { scaleLinear, scaleTime } from 'd3-scale';
 import { select } from 'd3-selection';
-import { axisLeft } from 'd3-axis';
 
 import schedule from './data/timelineData';
 import './Timeline.css';
@@ -37,8 +35,8 @@ class Timeline extends Component {
   }
 
   setupTimeline() {
-    const timeRowHeight = 24;
-    const eventsRowHeight = 32;
+    this.timeRowHeight = 24;
+    this.eventsRowHeight = 32;
 
     this.findSectionsAndRows();
 
@@ -47,7 +45,7 @@ class Timeline extends Component {
       tasksRowsCombinedHeight += tg.tasks.length * 14 + tg.tasks.length + 1;
     });
 
-    const timelineHeight = tasksRowsCombinedHeight + timeRowHeight + eventsRowHeight;
+    const timelineHeight = tasksRowsCombinedHeight + this.timeRowHeight + this.eventsRowHeight;
 
     this.margin = {
       left: 72,
@@ -78,13 +76,13 @@ class Timeline extends Component {
     const taskGroup = schedule.taskGroups.find(t => t.name === taskGroupName);
     const rows = [];
     let placed = false;
-    taskGroup.tasks.forEach(t => {
-      if (rows.length === 0) {
+    taskGroup.tasks.forEach((t, index) => {
+      if (rows[0] === undefined) {
         rows.push([t]);
         return;
       }
       rows.forEach((r, i) => {
-        const found = r.every(item => t.endTime <= item.startTime || t.startTime >= item.endTime);
+        const found = r.find(item => !(t.endTime <= item.startTime || t.startTime >= item.endTime));
         if (!found && !placed) {
           r.push(t);
           placed = true;
@@ -172,6 +170,7 @@ class Timeline extends Component {
 
   handleEvents() {
     const eventsData = schedule.events;
+    console.log(`eventsData`, eventsData);
 
     const events = this.g.selectAll('rect.event').data(eventsData, d => d);
 
@@ -226,7 +225,11 @@ class Timeline extends Component {
   }
 
   handleTaskGroupLabel(taskGroup) {
-    const className = taskGroup.name.toLowerCase().split(' ').join('-');
+    const className = taskGroup.name
+      .toLowerCase()
+      .split(' ')
+      .join('-');
+    const groupName = taskGroup.name.toLowerCase().split(' ')[0];
     const taskGroupLabels = this.g.selectAll(`text.${className}`).data([taskGroup.name], d => d);
 
     taskGroupLabels.exit().remove();
@@ -237,8 +240,8 @@ class Timeline extends Component {
       .attr('class', `${className}`)
       .merge(taskGroupLabels)
       .attr('x', this.xLabel(0.25))
-      .attr('y', d => this.labelTextPosition(d))
-      .text(d => d)
+      .attr('y', d => this[`y${groupName}`](taskGroup.tasks.length / 2) + 5)
+      .text(groupName.toUpperCase().substr(0, 6) + '...')
       .style('font-size', '13px')
       .style('fill', '#ffffff');
 
@@ -254,14 +257,57 @@ class Timeline extends Component {
       .style('stroke', '#393939')
       .merge(taskGroupLabelBorder)
       .attr('x1', -this.margin.left)
-      .attr('y1', d => this.borderPosition(d))
+      .attr('y1', d => this[`y${groupName}`](taskGroup.tasks.length))
       .attr('x2', 0)
-      .attr('y2', d => this.borderPosition(d));
+      .attr('y2', d => this[`y${groupName}`](taskGroup.tasks.length));
+
+    const taskGroupLabel = this.g.selectAll(`line.${className}-border`).data([taskGroup.name], d => d);
+
+    taskGroupLabel.exit().remove();
+
+    taskGroupLabel
+      .enter()
+      .append('line')
+      .attr('class', `${className}-border`)
+      .style('stroke-width', 1)
+      .style('stroke', '#ffffff')
+      .style('opacity', '0.2')
+      .merge(taskGroupLabel)
+      .attr('x1', 0)
+      .attr('y1', d => this[`y${groupName}`](taskGroup.tasks.length))
+      .attr('x2', this.width)
+      .attr('y2', d => this[`y${groupName}`](taskGroup.tasks.length));
   }
 
-  handleTaskGroup(taskGroup) {
-    // this.handleTaskGroupLabel(taskGroup)
-    // taskGroup.tasks.forEach(tasks => this.handleTasks(tasks))
+  handleTasks(tasks, taskGroupName, row) {
+    const className = taskGroupName
+      .toLowerCase()
+      .split(' ')
+      .join('-');
+    const groupName = taskGroupName.toLowerCase().split(' ')[0];
+    const taskRects = this.g.selectAll(`rect.${className}${row}`).data(tasks, d => d);
+
+    taskRects.exit().remove();
+
+    taskRects
+      .enter()
+      .append('rect')
+      .attr('class', `${className}${row}`)
+      .style('fill', d => (d.severity === 'SEVERE' ? '#ff3455' : '#f8e71c'))
+      .attr('rx', 3)
+      .attr('ry', 3)
+      .attr('name', d => d.title)
+      .merge(taskRects)
+      .attr('x', d => this.x(d.startTime))
+      .attr('y', this[`y${groupName}`](row) + 1)
+      .attr('width', d => this.x(d.endTime) - this.x(d.startTime))
+      .attr('height', 14);
+  }
+
+  handleTaskGroup(taskGroup, row) {
+    this.handleTaskGroupLabel(taskGroup);
+    // this.handleTaskGroupBorder(taskGroup);
+    taskGroup.tasks.forEach((tasks, i) => this.handleTasks(tasks, taskGroup.name, i));
   }
 
   handleLabelBlock() {
@@ -382,13 +428,26 @@ class Timeline extends Component {
       .range([-this.margin.left, 0])
       .domain([0, 2]);
 
-    // Y Scales
+    // Y Scales that will always be the same
     this.yTime = scaleLinear()
-      .range([0, 24])
+      .range([0, this.timeRowHeight])
       .domain([0, 2]);
+    const eventsRowRangeMax = this.timeRowHeight + this.eventsRowHeight;
     this.yEvent = scaleLinear()
-      .range([24, 56])
+      .range([this.timeRowHeight, eventsRowRangeMax])
       .domain([0, 2]);
+
+    // Y scales created for each Task Group that comes after Event Row
+    let increase = eventsRowRangeMax;
+    this.taskGroups.forEach(tg => {
+      const groupName = tg.name.toLowerCase().split(' ')[0];
+      const taskBarsTotalHeight = tg.tasks.length * 14;
+      const taskBarsPadding = tg.tasks.length + 1;
+      const endRange = taskBarsTotalHeight + taskBarsPadding;
+      this[`y${groupName}`] = scaleLinear()
+        .range([increase, (increase += endRange)])
+        .domain([0, tg.tasks.length]);
+    });
   }
 
   update() {
@@ -404,9 +463,9 @@ class Timeline extends Component {
     this.handleTimeTicks();
 
     this.handleEvents();
-    this.taskGroups.forEach(tg => this.handleTaskGroup(tg));
-
     this.handleLabelBlock();
+    this.taskGroups.forEach((tg, i) => this.handleTaskGroup(tg, i));
+
     this.handleLabels();
     this.handleBorders();
   }
