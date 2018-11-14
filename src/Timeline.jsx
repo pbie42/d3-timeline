@@ -1,62 +1,64 @@
-import React, { Component } from 'react';
-import PropTypes from 'prop-types';
-import moment from 'moment';
-import { scaleLinear, scaleTime } from 'd3-scale';
-import tip from 'd3-tip';
-import { select } from 'd3-selection';
+import React, { Component } from 'react'
+import PropTypes from 'prop-types'
+import moment from 'moment'
+import { scaleLinear, scaleTime } from 'd3-scale'
+import tip from 'd3-tip'
+import { select } from 'd3-selection'
 
-import schedule from './data/timelineData';
-import './Timeline.css';
+import schedule from './data/timelineData'
+import './Timeline.css'
 
 class Timeline extends Component {
   constructor(props) {
-    super(props);
-    this.updateWindowDimensions = this.updateWindowDimensions.bind(this);
+    super(props)
+    this.updateWindowDimensions = this.updateWindowDimensions.bind(this)
   }
 
   componentDidMount() {
-    this.windowHeight = window.innerHeight;
-    this.windowWidth = window.innerWidth;
+    this.windowHeight = window.innerHeight
+    this.windowWidth = window.innerWidth
 
-    this.setupTimeline();
-    this.updateWindowDimensions();
+    this.setupTimeline()
+    this.updateWindowDimensions()
 
     // Listen for window resize
-    window.addEventListener('resize', this.updateWindowDimensions);
+    window.addEventListener('resize', this.updateWindowDimensions)
   }
 
   componentWillUnmount() {
     // Remove window resize listener
-    window.removeEventListener('resize', this.updateWindowDimensions);
+    window.removeEventListener('resize', this.updateWindowDimensions)
   }
 
   updateWindowDimensions() {
-    this.windowWidth = window.innerWidth;
-    this.windowHeight = window.innerHeight;
-    this.update();
+    this.windowWidth = window.innerWidth
+    this.windowHeight = window.innerHeight
+    this.update()
   }
 
   setupTimeline() {
-    this.timeRowHeight = 24;
-    this.eventsRowHeight = 32;
+    this.timeRowHeight = 24
+    this.eventsRowHeight = 32
 
-    this.sortTaskGroups();
+    this.sortTaskGroups()
 
-    let tasksRowsCombinedHeight = 0;
+    let tasksRowsCombinedHeight = 0
     this.taskGroups.forEach(tg => {
-      tasksRowsCombinedHeight += tg.tasks.length * 14 + tg.tasks.length + 1;
-    });
+      tasksRowsCombinedHeight += tg.tasks.length * 14 + tg.tasks.length + 1
+    })
 
-    this.timelineHeight = tasksRowsCombinedHeight + this.timeRowHeight + this.eventsRowHeight;
+    this.timelineHeight =
+      tasksRowsCombinedHeight + this.timeRowHeight + this.eventsRowHeight
 
     this.margin = {
       left: 72,
       right: 0,
       top: 0,
       bottom: 0
-    };
-    this.totalHeight = this.timelineHeight + this.margin.top + this.margin.bottom;
-    this.width = this.windowWidth - this.margin.left - this.margin.right;
+    }
+    this.totalHeight =
+      this.timelineHeight + this.margin.top + this.margin.bottom
+    this.width = this.windowWidth - this.margin.left - this.margin.right
 
     // Create the SVG where everything will be placed inside
     this.g = select('#timeline')
@@ -65,69 +67,71 @@ class Timeline extends Component {
       .attr('height', this.totalHeight)
       .style('background-color', '#212121')
       .append('g')
-      .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
+      .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`)
 
-    this.startTime = schedule.startTime;
+    this.startTime = schedule.startTime
     this.endTime = +moment(schedule.startTime)
       .add(6, 'h')
-      .format('x');
+      .format('x')
   }
 
   // Easy algorithm for sorting tasks whose times overlap into different "rows"
   // that will be displayed on the graph.
   sortTasks(taskGroups, taskGroupName) {
-    const taskGroup = taskGroups.find(t => t.name === taskGroupName);
-    const rows = [];
-    let placed = false;
+    const taskGroup = taskGroups.find(t => t.name === taskGroupName)
+    const rows = []
+    let placed = false
     taskGroup.tasks.forEach((t, index) => {
       if (rows[0] === undefined) {
-        rows.push([t]);
-        return;
+        rows.push([t])
+        return
       }
       rows.forEach((r, i) => {
-        const found = r.find(item => !(t.endTime <= item.startTime || t.startTime >= item.endTime));
+        const found = r.find(
+          item => !(t.endTime <= item.startTime || t.startTime >= item.endTime)
+        )
         if (!found && !placed) {
-          r.push(t);
-          placed = true;
+          r.push(t)
+          placed = true
         }
-      });
+      })
       if (!placed) {
-        rows.push([t]);
-      } else placed = false;
-    });
-    return rows;
+        rows.push([t])
+      } else placed = false
+    })
+    return rows
   }
 
   sortTaskGroups() {
-    const taskGroups = schedule.taskGroups;
+    const taskGroups = schedule.taskGroups
     this.taskGroups = taskGroups.map(tg => ({
       name: tg.name,
       tasks: this.sortTasks(taskGroups, tg.name)
-    }));
+    }))
   }
 
   createTimeStamps() {
-    let time = moment(this.startTime);
-    const minutes = time.minutes();
-    const endTime = moment(this.endTime);
-    const timeStamps = [];
+    let time = moment(this.startTime)
+    const minutes = time.minutes()
+    const endTime = moment(this.endTime)
+    const timeStamps = []
 
     if (minutes !== 0 && minutes !== 15 && minutes !== 30 && minutes !== 45) {
-      const remainder = 30 - (time.minute() % 30);
-      time = moment(time).add(remainder, 'minutes');
+      const remainder = 30 - (time.minute() % 30)
+      time = moment(time).add(remainder, 'minutes')
     }
 
     while (time.isSameOrBefore(endTime)) {
-      timeStamps.push(+time.utc().format('x'));
-      time.add(30, 'm');
+      timeStamps.push(+time.utc().format('x'))
+      time.add(30, 'm')
     }
-    this.timeStamps = timeStamps;
+    this.timeStamps = timeStamps
   }
 
   handleTimeStamps() {
-    const times = this.g.selectAll('text.time').data(this.timeStamps, d => d);
+    const times = this.g.selectAll('text.time').data(this.timeStamps, d => d)
 
-    times.exit().remove();
+    times.exit().remove()
 
     times
       .enter()
@@ -143,13 +147,15 @@ class Timeline extends Component {
           .format('HHmm')
       )
       .style('font-size', '13px')
-      .style('fill', '#ffffff');
+      .style('fill', '#ffffff')
   }
 
   handleTimeTicks() {
-    const timeTicks = this.g.selectAll('line.time').data(this.timeStamps, d => d);
+    const timeTicks = this.g
+      .selectAll('line.time')
+      .data(this.timeStamps, d => d)
 
-    timeTicks.exit().remove();
+    timeTicks.exit().remove()
 
     timeTicks
       .enter()
@@ -162,14 +168,14 @@ class Timeline extends Component {
       .attr('x1', d => this.x(new Date(d)))
       .attr('y1', this.yTime(2))
       .attr('x2', d => this.x(new Date(d)))
-      .attr('y2', this.timelineHeight);
+      .attr('y2', this.timelineHeight)
   }
 
   handleEvents() {
-    const eventsData = schedule.events;
-    const events = this.g.selectAll('rect.event').data(eventsData, d => d);
+    const eventsData = schedule.events
+    const events = this.g.selectAll('rect.event').data(eventsData, d => d)
 
-    events.exit().remove();
+    events.exit().remove()
 
     events
       .enter()
@@ -184,11 +190,13 @@ class Timeline extends Component {
       .attr('x', d => this.x(d.startTime))
       .attr('y', this.yEvent(0) + 3)
       .attr('width', d => this.x(d.endTime) - this.x(d.startTime))
-      .attr('height', 26);
+      .attr('height', 26)
 
-    const eventsLabelsLeft = this.g.selectAll('text.event-left').data(eventsData, d => d);
+    const eventsLabelsLeft = this.g
+      .selectAll('text.event-left')
+      .data(eventsData, d => d)
 
-    eventsLabelsLeft.exit().remove();
+    eventsLabelsLeft.exit().remove()
 
     eventsLabelsLeft
       .enter()
@@ -200,11 +208,13 @@ class Timeline extends Component {
       .attr('text-anchor', 'start')
       .text(d => d.label)
       .attr('x', d => this.x(d.startTime) + 8)
-      .attr('y', this.yEvent(1.25));
+      .attr('y', this.yEvent(1.25))
 
-    const eventsLabelsRight = this.g.selectAll('text.event-right').data(eventsData, d => d);
+    const eventsLabelsRight = this.g
+      .selectAll('text.event-right')
+      .data(eventsData, d => d)
 
-    eventsLabelsRight.exit().remove();
+    eventsLabelsRight.exit().remove()
 
     eventsLabelsRight
       .enter()
@@ -216,18 +226,20 @@ class Timeline extends Component {
       .attr('text-anchor', 'end')
       .text(d => d.label)
       .attr('x', d => this.x(d.endTime) - 8)
-      .attr('y', this.yEvent(1.25));
+      .attr('y', this.yEvent(1.25))
   }
 
   handleTaskGroupLabel(taskGroup) {
     const className = taskGroup.name
       .toLowerCase()
       .split(' ')
-      .join('-');
-    const groupName = taskGroup.name.toLowerCase().split(' ')[0];
-    const taskGroupLabels = this.g.selectAll(`text.${className}`).data([taskGroup.name], d => d);
+      .join('-')
+    const groupName = taskGroup.name.toLowerCase().split(' ')[0]
+    const taskGroupLabels = this.g
+      .selectAll(`text.${className}`)
+      .data([taskGroup.name], d => d)
 
-    taskGroupLabels.exit().remove();
+    taskGroupLabels.exit().remove()
 
     taskGroupLabels
       .enter()
@@ -238,11 +250,13 @@ class Timeline extends Component {
       .attr('y', d => this[`y${groupName}`](taskGroup.tasks.length / 2) + 5)
       .text(groupName.toUpperCase().substr(0, 6) + '...')
       .style('font-size', '13px')
-      .style('fill', '#ffffff');
+      .style('fill', '#ffffff')
 
-    const taskGroupLabelBorder = this.g.selectAll(`line.${className}-label`).data([taskGroup.name], d => d);
+    const taskGroupLabelBorder = this.g
+      .selectAll(`line.${className}-label`)
+      .data([taskGroup.name], d => d)
 
-    taskGroupLabelBorder.exit().remove();
+    taskGroupLabelBorder.exit().remove()
 
     taskGroupLabelBorder
       .enter()
@@ -254,11 +268,13 @@ class Timeline extends Component {
       .attr('x1', -this.margin.left)
       .attr('y1', d => this[`y${groupName}`](taskGroup.tasks.length))
       .attr('x2', 0)
-      .attr('y2', d => this[`y${groupName}`](taskGroup.tasks.length));
+      .attr('y2', d => this[`y${groupName}`](taskGroup.tasks.length))
 
-    const taskGroupLabel = this.g.selectAll(`line.${className}-border`).data([taskGroup.name], d => d);
+    const taskGroupLabel = this.g
+      .selectAll(`line.${className}-border`)
+      .data([taskGroup.name], d => d)
 
-    taskGroupLabel.exit().remove();
+    taskGroupLabel.exit().remove()
 
     taskGroupLabel
       .enter()
@@ -271,24 +287,66 @@ class Timeline extends Component {
       .attr('x1', 0)
       .attr('y1', d => this[`y${groupName}`](taskGroup.tasks.length))
       .attr('x2', this.width)
-      .attr('y2', d => this[`y${groupName}`](taskGroup.tasks.length));
+      .attr('y2', d => this[`y${groupName}`](taskGroup.tasks.length))
+  }
+
+  handleTipHtml(d, taskGroupName) {
+    let html = '<div class="top-tooltip">'
+    html += `<div class="tool-color ${
+      d.severity === 'SEVERE' ? 'tool-severe' : 'tool-moderate'
+    }">${taskGroupName.toUpperCase().substr(0, 3)}</div>`
+    html += '<div class="tool-section">'
+    html += ' <div class="tool-title">SECTOR</div>'
+    html += '<div class="tool-info">A</div>'
+    html += '</div>'
+    html += '<div class="tool-section">'
+    html += '<div class="tool-title">BEGIN</div>'
+    html += `<div class="tool-info">${moment(d.startTime)
+      .utc()
+      .format('HHmm')}</div>`
+    html += '</div>'
+    html += '<div class="tool-section">'
+    html += '<div class="tool-title">END</div>'
+    html += `<div class="tool-info">${moment(d.endTime)
+      .utc()
+      .format('HHmm')}</div>`
+    html += '</div>'
+    html += '<div class="tool-section">'
+    html += '<div class="tool-title">A/C</div>'
+    html += `<div class="tool-info">${moment(d.endTime)
+      .utc()
+      .format('DD/MM')}</div>`
+    html += '</div>'
+    html += '</div>'
+    if (d.title) {
+      html += '<div class="bottom-tooltip">'
+      html += '<div class="status-block status-title"><div>STATUS</div></div>'
+      html += `<div class="status-status">${d.title}</div>`
+      html += '<div class="status-block status-filler"></div>'
+    }
+    html += '</div>'
+    console.log('html', html)
+    return html
   }
 
   handleTasks(tasks, taskGroupName, row) {
     const className = taskGroupName
       .toLowerCase()
       .split(' ')
-      .join('-');
-    const groupName = taskGroupName.toLowerCase().split(' ')[0];
+      .join('-')
+    const groupName = taskGroupName.toLowerCase().split(' ')[0]
 
     const toolTip = tip()
-      .attr('class', 'd3-tip s')
-      .html(d => d);
-    const taskRects = this.g.selectAll(`rect.${className}${row}`).data(tasks, d => d);
+      .attr('class', 'd3-tip timeline-tooltip')
+      .html(d => this.handleTipHtml(d, taskGroupName))
+      .direction('s')
+    const taskRects = this.g
+      .selectAll(`rect.${className}${row}`)
+      .data(tasks, d => d)
 
-    this.g.call(toolTip);
+    this.g.call(toolTip)
 
-    taskRects.exit().remove();
+    taskRects.exit().remove()
 
     taskRects
       .enter()
@@ -304,18 +362,20 @@ class Timeline extends Component {
       .attr('x', d => this.x(d.startTime))
       .attr('y', this[`y${groupName}`](row) + 1)
       .attr('width', d => this.x(d.endTime) - this.x(d.startTime))
-      .attr('height', 14);
+      .attr('height', 14)
   }
 
   handleTaskGroup(taskGroup, row) {
-    this.handleTaskGroupLabel(taskGroup);
-    taskGroup.tasks.forEach((tasks, i) => this.handleTasks(tasks, taskGroup.name, i));
+    this.handleTaskGroupLabel(taskGroup)
+    taskGroup.tasks.forEach((tasks, i) =>
+      this.handleTasks(tasks, taskGroup.name, i)
+    )
   }
 
   handleLabelBlock() {
-    const labelBlock = this.g.selectAll('rect.label').data([1], d => d);
+    const labelBlock = this.g.selectAll('rect.label').data([1], d => d)
 
-    labelBlock.exit().remove();
+    labelBlock.exit().remove()
 
     labelBlock
       .enter()
@@ -327,36 +387,36 @@ class Timeline extends Component {
       .attr('x', -this.margin.left)
       .attr('y', 0)
       .attr('width', this.margin.left)
-      .attr('height', this.timelineHeight);
+      .attr('height', this.timelineHeight)
   }
 
   labelTextPosition(item) {
     switch (item) {
       case 'TIME':
-        return this.yTime(1.5);
+        return this.yTime(1.5)
       case 'EVENTS':
-        return this.yEvent(1.25);
+        return this.yEvent(1.25)
       default:
-        break;
+        break
     }
   }
 
   borderPosition(item) {
     switch (item) {
       case 'TIME':
-        return this.yTime(2);
+        return this.yTime(2)
       case 'EVENTS':
-        return this.yEvent(2);
+        return this.yEvent(2)
       default:
-        break;
+        break
     }
   }
 
   handleLabels() {
-    const labelData = ['TIME', 'EVENTS'];
-    const labels = this.g.selectAll('text.label').data(labelData, d => d);
+    const labelData = ['TIME', 'EVENTS']
+    const labels = this.g.selectAll('text.label').data(labelData, d => d)
 
-    labels.exit().remove();
+    labels.exit().remove()
 
     labels
       .enter()
@@ -367,11 +427,13 @@ class Timeline extends Component {
       .attr('y', d => this.labelTextPosition(d))
       .text(d => d)
       .style('font-size', '13px')
-      .style('fill', '#ffffff');
+      .style('fill', '#ffffff')
 
-    const timeBorder = this.g.selectAll('line.time-label-line').data(labelData, d => d);
+    const timeBorder = this.g
+      .selectAll('line.time-label-line')
+      .data(labelData, d => d)
 
-    timeBorder.exit().remove();
+    timeBorder.exit().remove()
 
     timeBorder
       .enter()
@@ -383,12 +445,12 @@ class Timeline extends Component {
       .attr('x1', -this.margin.left)
       .attr('y1', d => this.borderPosition(d))
       .attr('x2', 0)
-      .attr('y2', d => this.borderPosition(d));
+      .attr('y2', d => this.borderPosition(d))
   }
 
   handleBorders() {
-    const leftBorder = this.g.selectAll('line.left').data([1]);
-    leftBorder.exit().remove();
+    const leftBorder = this.g.selectAll('line.left').data([1])
+    leftBorder.exit().remove()
 
     leftBorder
       .enter()
@@ -401,11 +463,13 @@ class Timeline extends Component {
       .attr('x1', 0)
       .attr('y1', 0)
       .attr('x2', 0)
-      .attr('y2', this.timelineHeight);
+      .attr('y2', this.timelineHeight)
 
-    const labelData = ['TIME', 'EVENTS'];
-    const sectionBorders = this.g.selectAll('line.section-border').data(labelData, d => d);
-    sectionBorders.exit().remove();
+    const labelData = ['TIME', 'EVENTS']
+    const sectionBorders = this.g
+      .selectAll('line.section-border')
+      .data(labelData, d => d)
+    sectionBorders.exit().remove()
 
     sectionBorders
       .enter()
@@ -418,59 +482,60 @@ class Timeline extends Component {
       .attr('x1', 0)
       .attr('y1', d => this.borderPosition(d))
       .attr('x2', this.width)
-      .attr('y2', d => this.borderPosition(d));
+      .attr('y2', d => this.borderPosition(d))
   }
 
   reScale() {
     // X Scales
     this.x = scaleTime()
       .range([0, this.width])
-      .domain([new Date(this.startTime), new Date(this.endTime)]);
+      .domain([new Date(this.startTime), new Date(this.endTime)])
     this.xLabel = scaleLinear()
       .range([-this.margin.left, 0])
-      .domain([0, 2]);
+      .domain([0, 2])
 
     // Y Scales that will always be the same
     this.yTime = scaleLinear()
       .range([0, this.timeRowHeight])
-      .domain([0, 2]);
-    const eventsRowRangeMax = this.timeRowHeight + this.eventsRowHeight;
+      .domain([0, 2])
+    const eventsRowRangeMax = this.timeRowHeight + this.eventsRowHeight
     this.yEvent = scaleLinear()
       .range([this.timeRowHeight, eventsRowRangeMax])
-      .domain([0, 2]);
+      .domain([0, 2])
 
     // Y scales created for each Task Group that comes after Event Row
-    let increase = eventsRowRangeMax;
+    let increase = eventsRowRangeMax
     this.taskGroups.forEach(tg => {
-      const groupName = tg.name.toLowerCase().split(' ')[0];
-      const taskBarsTotalHeight = tg.tasks.length * 14;
-      const taskBarsPadding = tg.tasks.length + 1;
-      const endRange = taskBarsTotalHeight + taskBarsPadding;
+      const groupName = tg.name.toLowerCase().split(' ')[0]
+      const taskBarsTotalHeight = tg.tasks.length * 14
+      const taskBarsPadding = tg.tasks.length + 1
+      const endRange = taskBarsTotalHeight + taskBarsPadding
       this[`y${groupName}`] = scaleLinear()
         .range([increase, (increase += endRange)])
-        .domain([0, tg.tasks.length]);
-    });
+        .domain([0, tg.tasks.length])
+    })
   }
 
   update() {
-    this.totalHeight = this.timelineHeight + this.margin.top + this.margin.bottom;
-    this.width = this.windowWidth - this.margin.left - this.margin.right;
+    this.totalHeight =
+      this.timelineHeight + this.margin.top + this.margin.bottom
+    this.width = this.windowWidth - this.margin.left - this.margin.right
     select('#timeline')
       .style('width', this.width + this.margin.left + this.margin.right)
-      .attr('height', this.totalHeight);
+      .attr('height', this.totalHeight)
 
-    this.reScale();
+    this.reScale()
 
-    this.createTimeStamps();
-    this.handleTimeStamps();
-    this.handleTimeTicks();
+    this.createTimeStamps()
+    this.handleTimeStamps()
+    this.handleTimeTicks()
 
-    this.handleEvents();
-    this.handleLabelBlock();
-    this.taskGroups.forEach((tg, i) => this.handleTaskGroup(tg, i));
+    this.handleEvents()
+    this.handleLabelBlock()
+    this.taskGroups.forEach((tg, i) => this.handleTaskGroup(tg, i))
 
-    this.handleLabels();
-    this.handleBorders();
+    this.handleLabels()
+    this.handleBorders()
   }
 
   render() {
@@ -478,19 +543,19 @@ class Timeline extends Component {
       <div
         id="timeline"
         ref={node => {
-          this.node = node;
+          this.node = node
         }}
       />
-    );
+    )
   }
 }
 
 Timeline.propTypes = {
   width: PropTypes.number
-};
+}
 
 Timeline.defaultProps = {
   width: 2000
-};
+}
 
-export default Timeline;
+export default Timeline

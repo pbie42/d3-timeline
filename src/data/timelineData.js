@@ -91,14 +91,16 @@ export default {
         {
           title: 'Clean Dishes',
           startTime: 1541666700000, // 8:45
-          endTime: 1541667600000 // 9:00
+          endTime: 1541667600000, // 9:00
+          severity: 'MODERATE'
         },
         {
           title: 'Rinse Bottle',
           startTime: 1541666700000, // 8:45
-          endTime: 1541667600000 // 9:00
+          endTime: 1541667600000, // 9:00
+          severity: 'SEVERE'
         }
       ]
     }
   ]
-};
+}

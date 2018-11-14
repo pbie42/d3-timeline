@@ -5,10 +5,11 @@
 .d3-tip {
   line-height: 1;
   font-weight: bold;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.8);
+  padding: 3px;
+  background: rgba(29, 29, 29, 0.9);
   color: #fff;
   border-radius: 2px;
+  border: 2px solid #444444;
   pointer-events: none;
 }
 
@@ -56,4 +57,77 @@
   margin: -4px 0 0 -1px;
   top: 50%;
   left: 100%;
+}
+
+.timeline-tooltip {
+  width: 300px;
+  display: flex;
+  flex-flow: column;
+}
+
+.top-tooltip {
+  display: flex;
+  height: 52px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tool-color {
+  display: flex;
+  width: 50px;
+  height: 50px;
+  margin-right: 10px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 2px;
+}
+
+.tool-severe {
+  background-color: red;
+  color: white;
+}
+
+.tool-moderate {
+  background-color: yellow;
+  color: black;
+}
+
+.tool-section {
+  flex: 2;
+}
+
+.tool-title {
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+
+.tool-info {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.bottom-tooltip {
+  display: flex;
+  justify-content: center;
+}
+
+.status-title {
+  font-size: 10px;
+  text-align: end;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 5px;
+}
+
+.status-block {
+  flex: 1;
+}
+
+.status-status {
+  font-size: 12px;
+  text-align: center;
+  background-color: #005f8a;
+  border-radius: 8px;
+  padding: 1px 7px;
 }
