@@ -350,7 +350,7 @@ class Timeline extends Component {
       .attr('class', 'd3-tip timeline-tooltip')
       .html(d => this.handleTipHtml(d, taskGroupName))
       .direction('s');
-    const taskRects = this.g.selectAll(`rect.${className}${row}`).data(mappedTasks, d => d.update);
+    const taskRects = this.g.selectAll(`rect.${className}${row}`).data(tasks);
 
     this.g.call(toolTip);
 
@@ -488,6 +488,67 @@ class Timeline extends Component {
       .attr('y2', d => this.borderPosition(d));
   }
 
+  handleCurrentTime() {
+    const current = +moment()
+      .utc()
+      .format('x');
+
+    const currentStampRect = this.g.selectAll('rect.current').data([current], d => d);
+
+    currentStampRect.exit().remove();
+
+    currentStampRect
+      .enter()
+      .append('rect')
+      .attr('class', 'current')
+      .style('fill', d => 'black')
+      .attr('rx', 9)
+      .attr('ry', 9)
+      .style('stroke-width', 2)
+      .style('stroke', '#ffffff')
+      .merge(currentStampRect)
+      .attr('x', d => this.x(d) - 34)
+      .attr('y', this.yTime(0) + 2)
+      .attr('width', 68)
+      .attr('height', this.timeRowHeight - 4);
+
+    const currentLine = this.g.selectAll('line.current').data([current], d => d);
+
+    currentLine.exit().remove();
+
+    currentLine
+      .enter()
+      .append('line')
+      .attr('class', 'current')
+      .style('stroke-width', 2)
+      .style('stroke', '#ffffff')
+      .merge(currentLine)
+      .attr('x1', d => this.x(d))
+      .attr('y1', this.yTime(2) - 2)
+      .attr('x2', d => this.x(d))
+      .attr('y2', this.timelineHeight);
+
+    const currentStamp = this.g.selectAll('text.current').data([current], d => d);
+
+    currentStamp.exit().remove();
+
+    currentStamp
+      .enter()
+      .append('text')
+      .attr('class', 'current')
+      .merge(currentStamp)
+      .attr('x', d => this.x(new Date(d)))
+      .attr('y', this.yTime(1.5))
+      .attr('text-anchor', 'middle')
+      .text(d =>
+        moment(d)
+          .utc()
+          .format('HHmm')
+      )
+      .style('font-size', '14px')
+      .style('fill', '#ffffff');
+  }
+
   reScale() {
     // X Scales
     this.x = scaleTime()
@@ -540,6 +601,7 @@ class Timeline extends Component {
 
     this.handleLabels();
     this.handleBorders();
+    this.handleCurrentTime();
   }
 
   render() {
