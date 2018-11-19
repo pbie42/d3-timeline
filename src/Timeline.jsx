@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { scaleLinear, scaleTime } from 'd3-scale';
 import tip from 'd3-tip';
-import { select } from 'd3-selection';
+import { select, selectAll } from 'd3-selection';
 
 import schedule from './data/timelineDataLive';
 import './Timeline.css';
@@ -81,6 +81,12 @@ class Timeline extends Component {
       .style('background-color', '#212121')
       .append('g')
       .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
+
+    // An HTML tool tip was chosen so it could display outside of the SVG if needed
+    this.toolTip = tip()
+      .attr('class', 'd3-tip timeline-tooltip')
+      .html(d => this.handleTipHtml(d))
+      .direction('s');
 
     this.startTime = schedule.startTime;
     this.endTime = +moment(schedule.startTime)
@@ -299,9 +305,9 @@ class Timeline extends Component {
       .attr('y2', d => this[`y${groupName}`](taskGroup.tasks.length));
   }
 
-  handleTipHtml(d, taskGroupName) {
+  handleTipHtml(d) {
     let html = '<div class="top-tooltip">';
-    html += `<div class="tool-color ${d.severity === 'SEVERE' ? 'tool-severe' : 'tool-moderate'}">${taskGroupName
+    html += `<div class="tool-color ${d.severity === 'SEVERE' ? 'tool-severe' : 'tool-moderate'}">${d.taskGroupName
       .toUpperCase()
       .substr(0, 3)}</div>`;
     html += '<div class="tool-section">';
@@ -338,21 +344,16 @@ class Timeline extends Component {
   }
 
   handleTasks(tasks, taskGroupName, row) {
-    const mappedTasks = tasks.map(t => ({ ...t, update: moment() }));
+    const mappedTasks = tasks.map(t => ({ ...t, update: moment(), taskGroupName }));
     const className = taskGroupName
       .toLowerCase()
       .split(' ')
       .join('-');
     const groupName = taskGroupName.toLowerCase().split(' ')[0];
 
-    // An HTML tool tip was chosen so it could display outside of the SVG if needed
-    const toolTip = tip()
-      .attr('class', 'd3-tip timeline-tooltip')
-      .html(d => this.handleTipHtml(d, taskGroupName))
-      .direction('s');
-    const taskRects = this.g.selectAll(`rect.${className}${row}`).data(tasks);
+    const taskRects = this.g.selectAll(`rect.${className}${row}`).data(mappedTasks, d => d.update);
 
-    this.g.call(toolTip);
+    this.g.call(this.toolTip);
 
     taskRects.exit().remove();
 
@@ -364,9 +365,9 @@ class Timeline extends Component {
       .attr('rx', 3)
       .attr('ry', 3)
       .attr('name', d => d.title)
-      .on('mouseover', toolTip.show)
-      .on('mouseout', toolTip.hide)
       .merge(taskRects)
+      .on('mouseover', this.toolTip.show)
+      .on('mouseout', this.toolTip.hide)
       .attr('x', d => this.x(d.startTime))
       .attr('y', this[`y${groupName}`](row) + 1)
       .attr('width', d => this.x(d.endTime) - this.x(d.startTime))
