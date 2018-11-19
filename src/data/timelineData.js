@@ -1,6 +1,5 @@
 export default {
   startTime: 1541664000000, // 8/11/18 08:00:00
-  endTime: 1541714400000, // 8/11/18 20:00:00
   events: [
     {
       label: 'Breakfast',
@@ -103,4 +102,4 @@ export default {
       ]
     }
   ]
-}
+};
