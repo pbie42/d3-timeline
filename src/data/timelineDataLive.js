@@ -5,6 +5,18 @@ export default {
     .utc()
     .subtract(15, 'm')
     .format('x'),
+  doNotDisturb: [
+    {
+      startTime: +moment()
+        .utc()
+        .add(1, 'h')
+        .format('x'),
+      endTime: +moment()
+        .utc()
+        .add(2, 'h')
+        .format('x')
+    }
+  ],
   events: [
     {
       label: 'Breakfast',

@@ -23,7 +23,7 @@ class Timeline extends Component {
     this.windowWidth = window.innerWidth;
     this.setupTimeline();
     this.updateWindowDimensions();
-    // this.tickInterval = setInterval(() => this.tick(), 1000);
+    this.tickInterval = setInterval(() => this.tick(), 1000);
 
     // Listen for window resize
     window.addEventListener('resize', this.updateWindowDimensions);
@@ -48,7 +48,7 @@ class Timeline extends Component {
       .utc()
       .subtract(15, 'm')
       .format('x');
-    this.endTime = +moment(schedule.startTime)
+    this.endTime = +moment(this.startTime)
       .add(6, 'h')
       .format('x');
     this.update();
@@ -66,14 +66,18 @@ class Timeline extends Component {
       tasksRowsCombinedHeight += tg.tasks.length * 14 + tg.tasks.length + 1;
     });
 
+    // Height of the actual timeline, not the svg
     this.timelineHeight = tasksRowsCombinedHeight + this.timeRowHeight + this.eventsRowHeight;
 
+    // Add margin information if visible info or titles need to be added outside
+    // the timeline, such as row labels.
     this.margin = {
       left: 72,
       right: 0,
       top: 0,
       bottom: 0
     };
+    // Actual size calculations for the svg
     this.totalHeight = this.timelineHeight + this.margin.top + this.margin.bottom;
     this.width = this.windowWidth - this.margin.left - this.margin.right;
 
@@ -99,8 +103,8 @@ class Timeline extends Component {
       .format('x');
   }
 
-  // Easy algorithm for sorting tasks whose times overlap into different "rows"
-  // that will be displayed on the graph.
+  // Easy algorithm for sorting tasks whose times overlap into different "mini-rows"
+  // that will be displayed on the graph in their respective "row".
   sortTasks(taskGroups, taskGroupName) {
     const taskGroup = taskGroups.find(t => t.name === taskGroupName);
     const rows = [];
@@ -138,7 +142,7 @@ class Timeline extends Component {
     const endTime = moment(this.endTime);
     const timeStamps = [];
 
-    if (minutes !== 0 && minutes !== 15 && minutes !== 30 && minutes !== 45) {
+    if (minutes !== 0 && minutes !== 30) {
       const remainder = 30 - (time.minute() % 30);
       time = moment(time).add(remainder, 'minutes');
     }
@@ -148,6 +152,7 @@ class Timeline extends Component {
       time.add(30, 'm');
     }
     this.timeStamps = timeStamps;
+    console.log(`this.timeStamps`, this.timeStamps);
   }
 
   handleTimeStamps() {
@@ -165,7 +170,7 @@ class Timeline extends Component {
       .append('text')
       .attr('class', 'time')
       .merge(times)
-      .attr('x', d => this.x(new Date(d.stamp)))
+      .attr('x', d => this.x(d.stamp))
       .attr('y', this.yTime(1.5))
       .attr('text-anchor', 'middle')
       .text(d =>
@@ -192,10 +197,46 @@ class Timeline extends Component {
       .style('stroke', '#ffffff')
       .style('opacity', '0.2')
       .merge(timeTicks)
-      .attr('x1', d => this.x(new Date(d.stamp)))
+      .attr('x1', d => this.x(d.stamp))
       .attr('y1', this.yTime(2))
-      .attr('x2', d => this.x(new Date(d.stamp)))
+      .attr('x2', d => this.x(d.stamp))
       .attr('y2', this.timelineHeight);
+  }
+
+  handleDoNotDisturb() {
+    const doNotData = schedule.doNotDisturb.map(d => ({ ...d, update: moment() }));
+
+    const doNotRects = this.g.selectAll('rect.no-disturb').data(doNotData, d => d.update);
+
+    doNotRects.exit().remove();
+
+    doNotRects
+      .enter()
+      .append('rect')
+      .attr('class', 'no-disturb')
+      .style('fill', '#304ffe')
+      .style('opacity', '0.5')
+      .merge(doNotRects)
+      .attr('x', d => this.x(d.startTime))
+      .attr('y', this.yTime(0) + 2)
+      .attr('width', d => this.x(d.endTime) - this.x(d.startTime))
+      .attr('height', 22);
+
+    const doNotLine = this.g.selectAll('line.no-disturb').data(doNotData, d => d.update);
+
+    doNotLine.exit().remove();
+
+    doNotLine
+      .enter()
+      .append('line')
+      .attr('class', 'no-disturb')
+      .style('stroke-width', 4)
+      .style('stroke', '#304ffe')
+      .merge(doNotLine)
+      .attr('x1', d => this.x(d.startTime))
+      .attr('x2', d => this.x(d.endTime))
+      .attr('y1', 0)
+      .attr('y2', 0);
   }
 
   handleEvents() {
@@ -413,7 +454,7 @@ class Timeline extends Component {
       .append('text')
       .attr('class', 'selected')
       .merge(selectedStamp)
-      .attr('x', d => this.x(new Date(d.time)))
+      .attr('x', d => this.x(d.time))
       .attr('y', this.yTime(1.5))
       .attr('text-anchor', 'middle')
       .text(d =>
@@ -635,7 +676,7 @@ class Timeline extends Component {
       .append('text')
       .attr('class', 'current')
       .merge(currentStamp)
-      .attr('x', d => this.x(new Date(d)))
+      .attr('x', d => this.x(d))
       .attr('y', this.yTime(1.5))
       .attr('text-anchor', 'middle')
       .text(d =>
@@ -651,7 +692,7 @@ class Timeline extends Component {
     // X Scales
     this.x = scaleTime()
       .range([0, this.width])
-      .domain([new Date(this.startTime), new Date(this.endTime)]);
+      .domain([this.startTime, this.endTime]);
     this.xLabel = scaleLinear()
       .range([-this.margin.left, 0])
       .domain([0, 2]);
@@ -665,7 +706,8 @@ class Timeline extends Component {
       .range([this.timeRowHeight, eventsRowRangeMax])
       .domain([0, 2]);
 
-    // Y scales created for each Task Group that comes after set rows
+    // Y scales created for each Task Group that comes after set rows. Done so
+    // that it is easier to place rows in positions based on the scale.
     let increase = eventsRowRangeMax;
     this.taskGroups.forEach(tg => {
       const groupName = tg.name.toLowerCase().split(' ')[0];
@@ -690,6 +732,7 @@ class Timeline extends Component {
     this.createTimeStamps();
     this.handleTimeStamps();
     this.handleTimeTicks();
+    this.handleDoNotDisturb();
 
     this.handleEvents();
     this.taskGroups.forEach((tg, i) => this.handleTaskGroup(tg, i));
