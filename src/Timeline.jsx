@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import { scaleLinear, scaleTime } from 'd3-scale';
 import tip from 'd3-tip';
-import { select, selectAll } from 'd3-selection';
+import { select } from 'd3-selection';
 
 import schedule from './data/timelineDataLive';
 import './Timeline.css';
@@ -12,6 +12,10 @@ class Timeline extends Component {
   constructor(props) {
     super(props);
     this.updateWindowDimensions = this.updateWindowDimensions.bind(this);
+    this.state = {
+      selected: '',
+      selectedTime: ''
+    };
   }
 
   componentDidMount() {
@@ -19,7 +23,7 @@ class Timeline extends Component {
     this.windowWidth = window.innerWidth;
     this.setupTimeline();
     this.updateWindowDimensions();
-    this.tickInterval = setInterval(() => this.tick(), 1000);
+    // this.tickInterval = setInterval(() => this.tick(), 1000);
 
     // Listen for window resize
     window.addEventListener('resize', this.updateWindowDimensions);
@@ -82,7 +86,8 @@ class Timeline extends Component {
       .append('g')
       .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
 
-    // An HTML tool tip was chosen so it could display outside of the SVG if needed
+    // An HTML tool tip was chosen so it could display outside of the SVG if needed.
+    // Also needs to be created here to prevent making new tool tips each update.
     this.toolTip = tip()
       .attr('class', 'd3-tip timeline-tooltip')
       .html(d => this.handleTipHtml(d))
@@ -343,7 +348,95 @@ class Timeline extends Component {
     return html;
   }
 
+  handleSelectedTime(selected) {
+    const selectedData = [{ time: selected, update: moment() }];
+
+    const darkenedRect = this.g.selectAll('rect.darkened').data(selectedData, d => d.update);
+    darkenedRect.exit().remove();
+
+    darkenedRect
+      .enter()
+      .append('rect')
+      .attr('class', 'darkened')
+      .style('fill', d => 'rgba(0, 0, 0, 0.5)')
+      .merge(darkenedRect)
+      .on('click', d => {
+        this.setState({ selected: '', selectedTime: '' });
+        this.update();
+      })
+      .attr('x', d => 0)
+      .attr('y', d => this.yTime(0))
+      .attr('width', d => this.x(d.time))
+      .attr('height', this.timelineHeight);
+
+    const selectedStampRect = this.g.selectAll('rect.selected').data(selectedData, d => d.update);
+
+    selectedStampRect.exit().remove();
+
+    selectedStampRect
+      .enter()
+      .append('rect')
+      .attr('class', 'selected')
+      .style('fill', d => 'black')
+      .attr('rx', 9)
+      .attr('ry', 9)
+      .style('stroke-width', 2)
+      .style('stroke', '#ffffff')
+      .merge(selectedStampRect)
+      .attr('x', d => this.x(d.time) - 34)
+      .attr('y', this.yTime(0) + 2)
+      .attr('width', 68)
+      .attr('height', this.timeRowHeight - 4);
+
+    const selectedLine = this.g.selectAll('line.selected').data(selectedData, d => d.update);
+
+    selectedLine.exit().remove();
+
+    selectedLine
+      .enter()
+      .append('line')
+      .attr('class', 'selected')
+      .style('stroke-width', 2)
+      .style('stroke', '#ffffff')
+      .merge(selectedLine)
+      .attr('x1', d => this.x(d.time))
+      .attr('y1', this.yTime(2) - 2)
+      .attr('x2', d => this.x(d.time))
+      .attr('y2', this.timelineHeight);
+
+    const selectedStamp = this.g.selectAll('text.selected').data(selectedData, d => d.update);
+
+    selectedStamp.exit().remove();
+
+    selectedStamp
+      .enter()
+      .append('text')
+      .attr('class', 'selected')
+      .merge(selectedStamp)
+      .attr('x', d => this.x(new Date(d.time)))
+      .attr('y', this.yTime(1.5))
+      .attr('text-anchor', 'middle')
+      .text(d =>
+        moment(d.time)
+          .utc()
+          .format('HHmm')
+      )
+      .style('font-size', '14px')
+      .style('fill', '#ffffff');
+  }
+
+  handleSelection(task) {
+    if (this.state.selected === task.title) {
+      this.setState({ selected: '', selectedTime: '' });
+      this.update();
+    } else {
+      this.setState({ selected: task.title, selectedTime: task.startTime });
+      this.update();
+    }
+  }
+
   handleTasks(tasks, taskGroupName, row) {
+    const { selectedTime } = this.state;
     const mappedTasks = tasks.map(t => ({ ...t, update: moment(), taskGroupName }));
     const className = taskGroupName
       .toLowerCase()
@@ -368,6 +461,10 @@ class Timeline extends Component {
       .merge(taskRects)
       .on('mouseover', this.toolTip.show)
       .on('mouseout', this.toolTip.hide)
+      .on('click', d => this.handleSelection(d))
+      .style('opacity', d => (selectedTime && d.startTime !== selectedTime ? '0.5' : '1'))
+      .style('stroke-width', d => (d.title === this.state.selected ? 2 : 0))
+      .style('stroke', 'blue')
       .attr('x', d => this.x(d.startTime))
       .attr('y', this[`y${groupName}`](row) + 1)
       .attr('width', d => this.x(d.endTime) - this.x(d.startTime))
@@ -603,6 +700,14 @@ class Timeline extends Component {
     this.handleLabels();
     this.handleBorders();
     this.handleCurrentTime();
+
+    if (this.state.selected !== '') this.handleSelectedTime(this.state.selectedTime);
+    else {
+      this.g.selectAll('rect.selected').remove();
+      this.g.selectAll('line.selected').remove();
+      this.g.selectAll('text.selected').remove();
+      this.g.selectAll('rect.darkened').remove();
+    }
   }
 
   render() {
