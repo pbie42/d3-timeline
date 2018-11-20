@@ -38,7 +38,8 @@
 .d3-tip.e:after {
   content: '\25C0';
   margin: -4px 0 0 0;
-  top: 50%;
+  color: #424242;
+  top: 0%;
   left: -8px;
 }
 
@@ -46,6 +47,7 @@
 .d3-tip.s:after {
   content: '\25B2';
   margin: 0 0 1px 0;
+  color: #424242;
   top: -8px;
   left: 0;
   text-align: center;
@@ -55,8 +57,18 @@
 .d3-tip.w:after {
   content: '\25B6';
   margin: -4px 0 0 -1px;
-  top: 50%;
+  color: #424242;
+  font-size: 12px;
+  top: 0%;
   left: 100%;
+}
+
+.d3-tip.e {
+  transform: translate(-20%, 50%);
+}
+
+.d3-tip.w {
+  transform: translate(20%, 50%);
 }
 
 .timeline-tooltip {
@@ -130,4 +142,66 @@
   background-color: #005f8a;
   border-radius: 8px;
   padding: 1px 7px;
+}
+
+.event-tip {
+  width: 260px;
+  display: flex;
+  flex-flow: column;
+  padding: 8px;
+  background-color: rgba(0, 0, 0, 0.9);
+  box-shadow: 0 0 10px 0 #000000;
+  border-radius: 4px;
+}
+
+.event-title-container {
+  display: flex;
+  padding: 7px;
+}
+
+.event-times-container {
+  display: flex;
+  padding: 7px;
+}
+
+.begin-container {
+  flex: 1;
+}
+
+.end-container {
+  flex: 2;
+}
+
+.time-title {
+  font-size: 10px;
+  margin-bottom: 3px;
+}
+
+.time-time {
+  font-size: 16px;
+}
+
+.events-list-container {
+  display: flex;
+  flex-flow: column;
+}
+
+.events-item {
+  display: flex;
+  align-items: center;
+  padding: 7px;
+}
+
+.events-background {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.events-title {
+  flex: 1;
+  font-size: 11px;
+}
+
+.events-data {
+  flex: 1;
+  font-size: 14px;
 }

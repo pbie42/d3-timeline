@@ -23,8 +23,7 @@ class Timeline extends Component {
     this.windowWidth = window.innerWidth;
     this.setupTimeline();
     this.updateWindowDimensions();
-    this.tickInterval = setInterval(() => this.tick(), 1000);
-
+    // this.tickInterval = setInterval(() => this.tick(), 1000);
     // Listen for window resize
     window.addEventListener('resize', this.updateWindowDimensions);
   }
@@ -90,17 +89,26 @@ class Timeline extends Component {
       .append('g')
       .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
 
-    // An HTML tool tip was chosen so it could display outside of the SVG if needed.
-    // Also needs to be created here to prevent making new tool tips each update.
-    this.toolTip = tip()
-      .attr('class', 'd3-tip timeline-tooltip')
-      .html(d => this.handleTipHtml(d))
-      .direction('s');
-
     this.startTime = schedule.startTime;
     this.endTime = +moment(schedule.startTime)
       .add(6, 'h')
       .format('x');
+
+    // An HTML tool tip was chosen so it could display outside of the SVG if needed.
+    // Also needs to be created here to prevent making new tool tips each update.
+    this.toolTipTask = tip()
+      .attr('class', 'd3-tip timeline-tooltip')
+      .html(d => this.handleTaskTip(d))
+      .direction('s');
+
+    this.toolTipEvent = tip()
+      .attr('class', 'd3-tip event-tip')
+      .html(d => this.handleEventTip(d))
+      .direction(d => {
+        if (d.startTime < this.startTime) return 'e';
+        if (d.endTime > this.endTime) return 'w';
+        return 's';
+      });
   }
 
   // Easy algorithm for sorting tasks whose times overlap into different "mini-rows"
@@ -152,7 +160,6 @@ class Timeline extends Component {
       time.add(30, 'm');
     }
     this.timeStamps = timeStamps;
-    console.log(`this.timeStamps`, this.timeStamps);
   }
 
   handleTimeStamps() {
@@ -246,6 +253,8 @@ class Timeline extends Component {
 
     events.exit().remove();
 
+    this.g.call(this.toolTipEvent);
+
     events
       .enter()
       .append('rect')
@@ -256,6 +265,8 @@ class Timeline extends Component {
       .style('stroke-width', 1)
       .style('stroke', '#505050')
       .merge(events)
+      .on('mouseover', this.toolTipEvent.show)
+      .on('mouseout', this.toolTipEvent.hide)
       .attr('x', d => this.x(d.startTime))
       .attr('y', this.yEvent(0) + 3)
       .attr('width', d => this.x(d.endTime) - this.x(d.startTime))
@@ -351,7 +362,43 @@ class Timeline extends Component {
       .attr('y2', d => this[`y${groupName}`](taskGroup.tasks.length));
   }
 
-  handleTipHtml(d) {
+  handleEventTip(d) {
+    let html = '<div class="event-title-container">';
+    html += `<div class="event-title">${d.label}</div>`;
+    html += '<div class="event-filler"></div>';
+    html += '</div>';
+    html += '<div class="event-times-container">';
+    html += '<div class="begin-container">';
+    html += '<div class="time-title">Begin</div>';
+    html += `<div class="time-time">${moment(d.startTime)
+      .utc()
+      .format('HHmm')}</div>`;
+    html += '</div>';
+    html += '<div class="end-container">';
+    html += '<div class="time-title">End</div>';
+    html += `<div class="time-time">${moment(d.endTime)
+      .utc()
+      .format('HHmm')}</div>`;
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="events-list-container">';
+    html += '<div class="events-item events-list-titles">';
+    html += '<div class="events-title">Sectors</div>';
+    html += '<div class="events-title">Entry Count</div>';
+    html += '</div>';
+    html += '<div class="events-item events-background">';
+    html += '<div class="events-data">SEC_NAME</div>';
+    html += '<div class="events-data">00</div>';
+    html += '</div>';
+    html += '<div class="events-item">';
+    html += '<div class="events-data">SEC_NAME</div>';
+    html += '<div class="events-data">00</div>';
+    html += '</div>';
+    html += '</div>';
+    return html;
+  }
+
+  handleTaskTip(d) {
     let html = '<div class="top-tooltip">';
     html += `<div class="tool-color ${d.severity === 'SEVERE' ? 'tool-severe' : 'tool-moderate'}">${d.taskGroupName
       .toUpperCase()
@@ -487,7 +534,7 @@ class Timeline extends Component {
 
     const taskRects = this.g.selectAll(`rect.${className}${row}`).data(mappedTasks, d => d.update);
 
-    this.g.call(this.toolTip);
+    this.g.call(this.toolTipTask);
 
     taskRects.exit().remove();
 
@@ -500,8 +547,8 @@ class Timeline extends Component {
       .attr('ry', 3)
       .attr('name', d => d.title)
       .merge(taskRects)
-      .on('mouseover', this.toolTip.show)
-      .on('mouseout', this.toolTip.hide)
+      .on('mouseover', this.toolTipTask.show)
+      .on('mouseout', this.toolTipTask.hide)
       .on('click', d => this.handleSelection(d))
       .style('opacity', d => (selectedTime && d.startTime !== selectedTime ? '0.5' : '1'))
       .style('stroke-width', d => (d.title === this.state.selected ? 2 : 0))

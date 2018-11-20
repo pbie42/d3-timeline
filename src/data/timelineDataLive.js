@@ -179,9 +179,29 @@ export default {
           severity: 'SEVERE'
         },
         {
+          title: 'Quick Pause',
+          startTime: +moment()
+            .utc()
+            .add(2, 'h')
+            .format('x'),
+          endTime: +moment()
+            .utc()
+            .add(2, 'h')
+            .add(15, 'm')
+            .format('x'),
+          severity: 'MODERATE'
+        },
+        {
           title: 'Hydrate',
-          startTime: 1541676600000, // 11:30
-          endTime: 1541676900000, // 11:35
+          startTime: +moment()
+            .utc()
+            .add(2, 'h')
+            .format('x'),
+          endTime: +moment()
+            .utc()
+            .add(2, 'h')
+            .add(5, 'm')
+            .format('x'),
           severity: 'SEVERE'
         }
       ]
@@ -191,14 +211,26 @@ export default {
       tasks: [
         {
           title: 'Clean Dishes',
-          startTime: 1541666700000, // 8:45
-          endTime: 1541667600000, // 9:00
+          startTime: +moment()
+            .utc()
+            .add(10, 'm')
+            .format('x'),
+          endTime: +moment()
+            .utc()
+            .add(15, 'm')
+            .format('x'),
           severity: 'MODERATE'
         },
         {
           title: 'Rinse Bottle',
-          startTime: 1541666700000, // 8:45
-          endTime: 1541667600000, // 9:00
+          startTime: +moment()
+            .utc()
+            .add(10, 'm')
+            .format('x'),
+          endTime: +moment()
+            .utc()
+            .add(15, 'm')
+            .format('x'),
           severity: 'SEVERE'
         }
       ]
