@@ -64,17 +64,18 @@
 }
 
 .d3-tip.e {
-  transform: translate(-20%, 50%);
+  transform: translate(-5%, 50%);
 }
 
 .d3-tip.w {
-  transform: translate(20%, 50%);
+  transform: translate(5%, 50%);
 }
 
 .timeline-tooltip {
   width: 300px;
   display: flex;
   flex-flow: column;
+  box-shadow: 0 0 10px 0 #000000;
 }
 
 .top-tooltip {

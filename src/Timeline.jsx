@@ -23,7 +23,7 @@ class Timeline extends Component {
     this.windowWidth = window.innerWidth;
     this.setupTimeline();
     this.updateWindowDimensions();
-    // this.tickInterval = setInterval(() => this.tick(), 1000);
+    this.tickInterval = setInterval(() => this.tick(), 1000);
     // Listen for window resize
     window.addEventListener('resize', this.updateWindowDimensions);
   }
@@ -95,7 +95,7 @@ class Timeline extends Component {
       .format('x');
 
     // An HTML tool tip was chosen so it could display outside of the SVG if needed.
-    // Also needs to be created here to prevent making new tool tips each update.
+    // Also needs to be declared here to prevent making new tool tips each update.
     this.toolTipTask = tip()
       .attr('class', 'd3-tip timeline-tooltip')
       .html(d => this.handleTaskTip(d))
@@ -247,7 +247,17 @@ class Timeline extends Component {
   }
 
   handleEvents() {
-    const eventsData = schedule.events.map(e => ({ ...e, update: moment() }));
+    const eventsData = schedule.events.map(e => {
+      let tasks = [];
+      schedule.taskGroups.forEach(tg => {
+        tasks = [...tasks, ...tg.tasks.filter(t => t.startTime >= e.startTime && t.endTime <= e.endTime)];
+      });
+      return {
+        ...e,
+        tasks,
+        update: moment()
+      };
+    });
 
     const events = this.g.selectAll('rect.event').data(eventsData, d => d.update);
 
@@ -381,19 +391,21 @@ class Timeline extends Component {
       .format('HHmm')}</div>`;
     html += '</div>';
     html += '</div>';
-    html += '<div class="events-list-container">';
-    html += '<div class="events-item events-list-titles">';
-    html += '<div class="events-title">Sectors</div>';
-    html += '<div class="events-title">Entry Count</div>';
-    html += '</div>';
-    html += '<div class="events-item events-background">';
-    html += '<div class="events-data">SEC_NAME</div>';
-    html += '<div class="events-data">00</div>';
-    html += '</div>';
-    html += '<div class="events-item">';
-    html += '<div class="events-data">SEC_NAME</div>';
-    html += '<div class="events-data">00</div>';
-    html += '</div>';
+    if (d.tasks.length > 0) {
+      html += '<div class="events-list-container">';
+      html += '<div class="events-item events-list-titles">';
+      html += '<div class="events-title">Tasks</div>';
+      html += '<div class="events-title">Priority</div>';
+      html += '</div>';
+    }
+
+    d.tasks.forEach((t, i) => {
+      html += `<div class="events-item ${i % 2 === 0 ? 'events-background' : ''}">`;
+      html += `<div class="events-data">${t.title}</div>`;
+      html += `<div class="events-data">${i}</div>`;
+      html += '</div>';
+    });
+
     html += '</div>';
     return html;
   }
