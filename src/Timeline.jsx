@@ -2,7 +2,8 @@ import React, { Component } from 'react';
 import moment from 'moment';
 import { scaleLinear, scaleTime } from 'd3-scale';
 import tip from 'd3-tip';
-import { select } from 'd3-selection';
+import { select, selectAll } from 'd3-selection';
+import faker from 'faker';
 
 import schedule from './data/timelineDataLive';
 import './Timeline.css';
@@ -13,7 +14,7 @@ class Timeline extends Component {
     this.updateWindowDimensions = this.updateWindowDimensions.bind(this);
     this.state = {
       selected: '',
-      selectedTime: '',
+      selectedTime: ''
     };
   }
 
@@ -38,31 +39,12 @@ class Timeline extends Component {
     this.timeRowHeight = 24;
     this.eventsRowHeight = 32;
 
-    this.sortTaskGroups();
-
-    let tasksRowsCombinedHeight = 0;
-    this.taskGroups.forEach((tg) => {
-      tasksRowsCombinedHeight += (tg.tasks.length * 14) + tg.tasks.length + 1;
-    });
-
-    // Height of the actual timeline, not the svg
-    this.timelineHeight = tasksRowsCombinedHeight + this.timeRowHeight + this.eventsRowHeight;
-
-    // Add margin information if visible info or titles need to be added outside
-    // the timeline, such as row labels.
-    this.margin = {
-      left: 72,
-      right: 0,
-      top: 0,
-      bottom: 0,
-    };
-    // Actual size calculations for the svg
-    this.totalHeight = this.timelineHeight + this.margin.top + this.margin.bottom;
-    this.width = this.windowWidth - this.margin.left - this.margin.right;
+    this.handleData(schedule);
 
     // Create the SVG where everything will be placed inside
     this.g = select('#timeline')
       .append('svg')
+      .attr('class', 'timeline-svg')
       .style('width', this.width + this.margin.left + this.margin.right)
       .attr('height', this.totalHeight)
       .style('background-color', '#212121')
@@ -84,7 +66,7 @@ class Timeline extends Component {
     this.toolTipEvent = tip()
       .attr('class', 'd3-tip event-tip')
       .html(d => this.handleEventTip(d))
-      .direction((d) => {
+      .direction(d => {
         if (d.startTime < this.startTime) return 'e';
         if (d.endTime > this.endTime) return 'w';
         return 's';
@@ -110,18 +92,42 @@ class Timeline extends Component {
     this.update();
   }
 
+  handleData(timeSchedule) {
+    this.sortTaskGroups(timeSchedule);
+
+    let tasksRowsCombinedHeight = 0;
+    this.taskGroups.forEach(tg => {
+      tasksRowsCombinedHeight += tg.tasks.length * 14 + tg.tasks.length + 1;
+    });
+
+    // Height of the actual timeline, not the svg
+    this.timelineHeight = tasksRowsCombinedHeight + this.timeRowHeight + this.eventsRowHeight;
+
+    // Add margin information if visible info or titles need to be added outside
+    // the timeline, such as row labels.
+    this.margin = {
+      left: 72,
+      right: 0,
+      top: 0,
+      bottom: 0
+    };
+    // Actual size calculations for the svg
+    this.totalHeight = this.timelineHeight + this.margin.top + this.margin.bottom;
+    this.width = this.windowWidth - this.margin.left - this.margin.right;
+  }
+
   // Easy algorithm for sorting tasks whose times overlap into different "mini-rows"
   // that will be displayed on the graph in their respective "row".
   sortTasks(taskGroups, taskGroupName) {
     const taskGroup = taskGroups.find(t => t.name === taskGroupName);
     const rows = [];
     let placed = false;
-    taskGroup.tasks.forEach((t) => {
+    taskGroup.tasks.forEach(t => {
       if (rows[0] === undefined) {
         rows.push([t]);
         return;
       }
-      rows.forEach((r) => {
+      rows.forEach(r => {
         const found = r.find(item => !(t.endTime <= item.startTime || t.startTime >= item.endTime));
         if (!found && !placed) {
           r.push(t);
@@ -135,11 +141,11 @@ class Timeline extends Component {
     return rows;
   }
 
-  sortTaskGroups() {
-    const { taskGroups } = schedule;
+  sortTaskGroups(timeSchedule) {
+    const { taskGroups } = timeSchedule;
     this.taskGroups = taskGroups.map(tg => ({
       name: tg.name,
-      tasks: this.sortTasks(taskGroups, tg.name),
+      tasks: this.sortTasks(taskGroups, tg.name)
     }));
   }
 
@@ -182,7 +188,8 @@ class Timeline extends Component {
       .text(d =>
         moment(d.stamp)
           .utc()
-          .format('HHmm'))
+          .format('HHmm')
+      )
       .style('font-size', '13px')
       .style('fill', '#ffffff');
   }
@@ -245,15 +252,15 @@ class Timeline extends Component {
   }
 
   handleEvents() {
-    const eventsData = schedule.events.map((e) => {
+    const eventsData = schedule.events.map(e => {
       let tasks = [];
-      schedule.taskGroups.forEach((tg) => {
+      schedule.taskGroups.forEach(tg => {
         tasks = [...tasks, ...tg.tasks.filter(t => t.startTime >= e.startTime && t.endTime <= e.endTime)];
       });
       return {
         ...e,
         tasks,
-        update: moment(),
+        update: moment()
       };
     });
 
@@ -517,7 +524,8 @@ class Timeline extends Component {
       .text(d =>
         moment(d.time)
           .utc()
-          .format('HHmm'))
+          .format('HHmm')
+      )
       .style('font-size', '14px')
       .style('fill', '#ffffff');
   }
@@ -738,9 +746,33 @@ class Timeline extends Component {
       .text(d =>
         moment(d)
           .utc()
-          .format('HHmm'))
+          .format('HHmm')
+      )
       .style('font-size', '14px')
       .style('fill', '#ffffff');
+  }
+
+  handleSVG() {
+    const svg = selectAll('.timeline-svg').data([moment()]);
+
+    svg.exit().remove();
+
+    svg
+      .enter()
+      .append('svg')
+      .attr('class', 'timeline-svg')
+      .merge(svg)
+      .style('width', this.width + this.margin.left + this.margin.right)
+      .attr('height', this.totalHeight)
+      .style('background-color', '#212121');
+
+    const g = selectAll('g').data([moment()]);
+
+    g.exit().remove();
+
+    g.enter()
+      .append('g')
+      .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`);
   }
 
   reScale() {
@@ -764,7 +796,7 @@ class Timeline extends Component {
     // Y scales created for each Task Group that comes after set rows. Done so
     // that it is easier to place rows in positions based on the scale.
     let increase = eventsRowRangeMax;
-    this.taskGroups.forEach((tg) => {
+    this.taskGroups.forEach(tg => {
       const groupName = tg.name.toLowerCase().split(' ')[0];
       const taskBarsTotalHeight = tg.tasks.length * 14;
       const taskBarsPadding = tg.tasks.length + 1;
@@ -776,6 +808,8 @@ class Timeline extends Component {
   }
 
   update() {
+    // this.randomDynamic();
+    this.handleData(schedule);
     this.totalHeight = this.timelineHeight + this.margin.top + this.margin.bottom;
     this.width = this.windowWidth - this.margin.left - this.margin.right;
     select('#timeline')
@@ -784,6 +818,7 @@ class Timeline extends Component {
 
     this.reScale();
 
+    this.handleSVG();
     this.createTimeStamps();
     this.handleTimeStamps();
     this.handleTimeTicks();
@@ -808,11 +843,79 @@ class Timeline extends Component {
     }
   }
 
+  randomDynamic() {
+    schedule.taskGroups.push({
+      name: faker.name.firstName(),
+      tasks: [
+        {
+          title: 'Clean Dishes',
+          startTime: +moment()
+            .utc()
+            .add(10, 'm')
+            .format('x'),
+          endTime: +moment()
+            .utc()
+            .add(15, 'm')
+            .format('x'),
+          severity: 'MODERATE'
+        },
+        {
+          title: 'Rinse Bottle',
+          startTime: +moment()
+            .utc()
+            .add(10, 'm')
+            .format('x'),
+          endTime: +moment()
+            .utc()
+            .add(15, 'm')
+            .format('x'),
+          severity: 'SEVERE'
+        }
+      ]
+    });
+    function rando(min, max) {
+      min = Math.ceil(min);
+      max = Math.floor(max);
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+    const test = {
+      one: rando(1, 100),
+      two: rando(1, 300),
+      three: rando(1, 100),
+      four: rando(1, 300)
+    };
+    console.log(`test`, test);
+    schedule.taskGroups[0].tasks.push({
+      title: faker.name.firstName(),
+      startTime: +moment()
+        .utc()
+        .add(test.one < test.two ? test.one : test.two, 'm')
+        .format('x'),
+      endTime: +moment()
+        .utc()
+        .add(test.one > test.two ? test.one : test.two, 'm')
+        .format('x'),
+      severity: 'MODERATE'
+    });
+    schedule.taskGroups[1].tasks.push({
+      title: faker.name.firstName(),
+      startTime: +moment()
+        .utc()
+        .add(test.three < test.four ? test.three : test.four, 'm')
+        .format('x'),
+      endTime: +moment()
+        .utc()
+        .add(test.three > test.four ? test.three : test.four, 'm')
+        .format('x'),
+      severity: 'MODERATE'
+    });
+  }
+
   render() {
     return (
       <div
         id="timeline"
-        ref={(node) => {
+        ref={node => {
           this.node = node;
         }}
       />
