@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 import moment from 'moment';
 import { scaleLinear, scaleTime } from 'd3-scale';
 import tip from 'd3-tip';
@@ -14,7 +13,7 @@ class Timeline extends Component {
     this.updateWindowDimensions = this.updateWindowDimensions.bind(this);
     this.state = {
       selected: '',
-      selectedTime: ''
+      selectedTime: '',
     };
   }
 
@@ -34,25 +33,6 @@ class Timeline extends Component {
     clearInterval(this.tickInterval);
   }
 
-  updateWindowDimensions() {
-    this.windowWidth = window.innerWidth;
-    this.windowHeight = window.innerHeight;
-    this.update();
-  }
-
-  tick() {
-    // Every second this is called to update the start and end times of the graph
-    // which will change the timeScale allowing everything to "move" with the time
-    this.startTime = +moment()
-      .utc()
-      .subtract(15, 'm')
-      .format('x');
-    this.endTime = +moment(this.startTime)
-      .add(6, 'h')
-      .format('x');
-    this.update();
-  }
-
   setupTimeline() {
     // Pre set heights for rows that will always display and will not need to change
     this.timeRowHeight = 24;
@@ -61,8 +41,8 @@ class Timeline extends Component {
     this.sortTaskGroups();
 
     let tasksRowsCombinedHeight = 0;
-    this.taskGroups.forEach(tg => {
-      tasksRowsCombinedHeight += tg.tasks.length * 14 + tg.tasks.length + 1;
+    this.taskGroups.forEach((tg) => {
+      tasksRowsCombinedHeight += (tg.tasks.length * 14) + tg.tasks.length + 1;
     });
 
     // Height of the actual timeline, not the svg
@@ -74,7 +54,7 @@ class Timeline extends Component {
       left: 72,
       right: 0,
       top: 0,
-      bottom: 0
+      bottom: 0,
     };
     // Actual size calculations for the svg
     this.totalHeight = this.timelineHeight + this.margin.top + this.margin.bottom;
@@ -104,11 +84,30 @@ class Timeline extends Component {
     this.toolTipEvent = tip()
       .attr('class', 'd3-tip event-tip')
       .html(d => this.handleEventTip(d))
-      .direction(d => {
+      .direction((d) => {
         if (d.startTime < this.startTime) return 'e';
         if (d.endTime > this.endTime) return 'w';
         return 's';
       });
+  }
+
+  tick() {
+    // Every second this is called to update the start and end times of the graph
+    // which will change the timeScale allowing everything to "move" with the time
+    this.startTime = +moment()
+      .utc()
+      .subtract(15, 'm')
+      .format('x');
+    this.endTime = +moment(this.startTime)
+      .add(6, 'h')
+      .format('x');
+    this.update();
+  }
+
+  updateWindowDimensions() {
+    this.windowWidth = window.innerWidth;
+    this.windowHeight = window.innerHeight;
+    this.update();
   }
 
   // Easy algorithm for sorting tasks whose times overlap into different "mini-rows"
@@ -117,12 +116,12 @@ class Timeline extends Component {
     const taskGroup = taskGroups.find(t => t.name === taskGroupName);
     const rows = [];
     let placed = false;
-    taskGroup.tasks.forEach((t, index) => {
+    taskGroup.tasks.forEach((t) => {
       if (rows[0] === undefined) {
         rows.push([t]);
         return;
       }
-      rows.forEach((r, i) => {
+      rows.forEach((r) => {
         const found = r.find(item => !(t.endTime <= item.startTime || t.startTime >= item.endTime));
         if (!found && !placed) {
           r.push(t);
@@ -137,10 +136,10 @@ class Timeline extends Component {
   }
 
   sortTaskGroups() {
-    const taskGroups = schedule.taskGroups;
+    const { taskGroups } = schedule;
     this.taskGroups = taskGroups.map(tg => ({
       name: tg.name,
-      tasks: this.sortTasks(taskGroups, tg.name)
+      tasks: this.sortTasks(taskGroups, tg.name),
     }));
   }
 
@@ -183,8 +182,7 @@ class Timeline extends Component {
       .text(d =>
         moment(d.stamp)
           .utc()
-          .format('HHmm')
-      )
+          .format('HHmm'))
       .style('font-size', '13px')
       .style('fill', '#ffffff');
   }
@@ -247,15 +245,15 @@ class Timeline extends Component {
   }
 
   handleEvents() {
-    const eventsData = schedule.events.map(e => {
+    const eventsData = schedule.events.map((e) => {
       let tasks = [];
-      schedule.taskGroups.forEach(tg => {
+      schedule.taskGroups.forEach((tg) => {
         tasks = [...tasks, ...tg.tasks.filter(t => t.startTime >= e.startTime && t.endTime <= e.endTime)];
       });
       return {
         ...e,
         tasks,
-        update: moment()
+        update: moment(),
       };
     });
 
@@ -331,8 +329,8 @@ class Timeline extends Component {
       .attr('class', `${className}`)
       .merge(taskGroupLabels)
       .attr('x', this.xLabel(0.25))
-      .attr('y', d => this[`y${groupName}`](taskGroup.tasks.length / 2) + 5)
-      .text(groupName.toUpperCase().substr(0, 6) + '...')
+      .attr('y', () => this[`y${groupName}`](taskGroup.tasks.length / 2) + 5)
+      .text(`${groupName.toUpperCase().substr(0, 6)}...`)
       .style('font-size', '13px')
       .style('fill', '#ffffff');
 
@@ -350,9 +348,9 @@ class Timeline extends Component {
       .style('stroke', '#393939')
       .merge(taskGroupLabelBorder)
       .attr('x1', -this.margin.left)
-      .attr('y1', d => this[`y${groupName}`](taskGroup.tasks.length))
+      .attr('y1', () => this[`y${groupName}`](taskGroup.tasks.length))
       .attr('x2', 0)
-      .attr('y2', d => this[`y${groupName}`](taskGroup.tasks.length));
+      .attr('y2', () => this[`y${groupName}`](taskGroup.tasks.length));
 
     const taskGroupLabel = this.g.selectAll(`line.${className}-border`).data([taskGroup.name], d => d);
 
@@ -367,9 +365,9 @@ class Timeline extends Component {
       .style('opacity', '0.2')
       .merge(taskGroupLabel)
       .attr('x1', 0)
-      .attr('y1', d => this[`y${groupName}`](taskGroup.tasks.length))
+      .attr('y1', () => this[`y${groupName}`](taskGroup.tasks.length))
       .attr('x2', this.width)
-      .attr('y2', d => this[`y${groupName}`](taskGroup.tasks.length));
+      .attr('y2', () => this[`y${groupName}`](taskGroup.tasks.length));
   }
 
   handleEventTip(d) {
@@ -458,14 +456,14 @@ class Timeline extends Component {
       .enter()
       .append('rect')
       .attr('class', 'darkened')
-      .style('fill', d => 'rgba(0, 0, 0, 0.5)')
+      .style('fill', () => 'rgba(0, 0, 0, 0.5)')
       .merge(darkenedRect)
-      .on('click', d => {
+      .on('click', () => {
         this.setState({ selected: '', selectedTime: '' });
         this.update();
       })
-      .attr('x', d => 0)
-      .attr('y', d => this.yTime(0))
+      .attr('x', () => 0)
+      .attr('y', () => this.yTime(0))
       .attr('width', d => this.x(d.time))
       .attr('height', this.timelineHeight);
 
@@ -477,7 +475,7 @@ class Timeline extends Component {
       .enter()
       .append('rect')
       .attr('class', 'selected')
-      .style('fill', d => 'black')
+      .style('fill', 'black')
       .attr('rx', 9)
       .attr('ry', 9)
       .style('stroke-width', 2)
@@ -519,8 +517,7 @@ class Timeline extends Component {
       .text(d =>
         moment(d.time)
           .utc()
-          .format('HHmm')
-      )
+          .format('HHmm'))
       .style('font-size', '14px')
       .style('fill', '#ffffff');
   }
@@ -601,7 +598,7 @@ class Timeline extends Component {
       case 'EVENTS':
         return this.yEvent(1.25);
       default:
-        break;
+        return 0;
     }
   }
 
@@ -612,7 +609,7 @@ class Timeline extends Component {
       case 'EVENTS':
         return this.yEvent(2);
       default:
-        break;
+        return 0;
     }
   }
 
@@ -699,7 +696,7 @@ class Timeline extends Component {
       .enter()
       .append('rect')
       .attr('class', 'current')
-      .style('fill', d => 'black')
+      .style('fill', 'black')
       .attr('rx', 9)
       .attr('ry', 9)
       .style('stroke-width', 2)
@@ -741,8 +738,7 @@ class Timeline extends Component {
       .text(d =>
         moment(d)
           .utc()
-          .format('HHmm')
-      )
+          .format('HHmm'))
       .style('font-size', '14px')
       .style('fill', '#ffffff');
   }
@@ -768,7 +764,7 @@ class Timeline extends Component {
     // Y scales created for each Task Group that comes after set rows. Done so
     // that it is easier to place rows in positions based on the scale.
     let increase = eventsRowRangeMax;
-    this.taskGroups.forEach(tg => {
+    this.taskGroups.forEach((tg) => {
       const groupName = tg.name.toLowerCase().split(' ')[0];
       const taskBarsTotalHeight = tg.tasks.length * 14;
       const taskBarsPadding = tg.tasks.length + 1;
@@ -797,7 +793,7 @@ class Timeline extends Component {
     this.taskGroups.forEach((tg, i) => this.handleTaskGroup(tg, i));
 
     this.handleLabelBlock();
-    this.taskGroups.forEach((tg, i) => this.handleTaskGroupLabel(tg));
+    this.taskGroups.forEach(tg => this.handleTaskGroupLabel(tg));
 
     this.handleLabels();
     this.handleBorders();
@@ -816,20 +812,12 @@ class Timeline extends Component {
     return (
       <div
         id="timeline"
-        ref={node => {
+        ref={(node) => {
           this.node = node;
         }}
       />
     );
   }
 }
-
-Timeline.propTypes = {
-  width: PropTypes.number
-};
-
-Timeline.defaultProps = {
-  width: 2000
-};
 
 export default Timeline;
